@@ -131,7 +131,7 @@ SmartMess follows a **modular, scalable MERN architecture** that reflects real-w
 
 ---
 
-# 🚀 Installation & Setup Guide
+## 🚀 Installation & Setup Guide
 
 ## 📌 Prerequisites
 
