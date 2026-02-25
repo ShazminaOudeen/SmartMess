@@ -24,36 +24,18 @@ SmartMess follows a **modular, scalable MERN architecture** that reflects real-w
 
 ## 🛠 Tech Stack
 
-### Frontend
-- React.js  
-- JavaScript  
-- Tailwind CSS  
-- Vite  
-
-### Backend
-- Node.js  
-- Express.js (REST APIs)
-
-### Database
-- MongoDB  
-
-### Architecture
-- MERN Stack  
-- RESTful API Architecture  
-
-### Tools
-- VS Code  
-- Postman  
-- Git & GitHub  
+- **Frontend:** React.js, JavaScript, Tailwind CSS, Vite  
+- **Backend:** Node.js, Express.js (REST APIs)
+- **Database:** MongoDB  
+- **Architecture:** MERN Stack, RESTful API Architecture  
+- **Tools:** VS Code, Postman, Git & GitHub  
 
 ### Additional Component
 - AI Chatbot Assistant  
 
 ---
 
-## ✨ Features
-
----
+## ✨ Features (Functional Overview)
 
 ## 👤 User Management & Authorization
 - Student, Canteen, and Admin registration  
@@ -149,25 +131,89 @@ SmartMess follows a **modular, scalable MERN architecture** that reflects real-w
 
 ---
 
-## 🧩 System Architecture
+# 🚀 Installation & Setup Guide
 
-SmartMess follows the **MERN architecture**:
+## 📌 Prerequisites
 
-- **MongoDB** → Database storage  
-- **Express.js & Node.js** → Backend APIs & business logic  
-- **React.js** → Frontend user interface  
+Make sure you have installed:
 
-This ensures scalability, modularity, and maintainability.
+- Node.js (v18 or above)
+- MongoDB (Local or MongoDB Atlas)
+- Git
+- VS Code
+
+---
+
+## 🔽 1️⃣ Clone the Repository
+
+```bash
+git clone https://github.com/ShazminaOudeen/SmartMess.git
+cd SmartMess
+```
+
+---
+
+## 📦 2️⃣ Backend Setup
+
+```bash
+cd backend
+npm install
+```
+
+### 🔐 Create `.env` File in Backend Folder
+
+Create a file named `.env` and add:
+
+```
+PORT=5000
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_secret_key
+```
+
+### ▶ Run Backend Server
+
+```bash
+npm start
+```
+
+Server will run on:
+
+```
+http://localhost:5000
+```
+
+---
+
+## 💻 3️⃣ Frontend Setup
+
+Open a new terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend will run on:
+
+```
+http://localhost:5173
+```
+
+---
+
+## 🧪 API Testing
+
+- Postman to test backend APIs
 
 ---
 
 ## 🎓 Project Details
 
-**Academic Year:** 2nd Year – 2nd Semester  
+**Academic Year:** 3nd Year – 1st Semester  
 **Module:** IT Project Management (ITPM)  
 **Team Size:** 4 Members  
-
-### Contribution Areas
+**Contribution Areas:**
 - User Authentication & Authorization  
 - Student Ordering & Payment System  
 - Canteen Management & Revenue Tracking  
