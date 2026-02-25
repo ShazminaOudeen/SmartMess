@@ -74,7 +74,7 @@ SmartMess follows a **modular, scalable MERN architecture** that reflects real-w
 ## 🏪 Canteen Module
 
 ### 🏪 Profile Management
-- Register & update canteen details  
+- Update canteen details  
 - Manage operating hours  
 - Upload canteen images  
 
