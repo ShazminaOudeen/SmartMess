@@ -210,7 +210,7 @@ http://localhost:5173
 
 ## 🎓 Project Details
 
-**Academic Year:** 3nd Year – 1st Semester  
+**Academic Year:** 3rd Year – 1st Semester  
 **Module:** IT Project Management (ITPM)  
 **Team Size:** 4 Members  
 **Contribution Areas:**
