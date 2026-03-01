@@ -74,7 +74,7 @@ SmartMess follows a **modular, scalable MERN architecture** that reflects real-w
 ## 🏪 Canteen Module
 
 ### 🏪 Profile Management
-- Register & update canteen details  
+- Update canteen details  
 - Manage operating hours  
 - Upload canteen images  
 
@@ -210,7 +210,7 @@ http://localhost:5173
 
 ## 🎓 Project Details
 
-**Academic Year:** 3nd Year – 1st Semester  
+**Academic Year:** 3rd Year – 1st Semester  
 **Module:** IT Project Management (ITPM)  
 **Team Size:** 4 Members  
 **Contribution Areas:**
