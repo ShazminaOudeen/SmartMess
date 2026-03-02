@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import HomePage from "./Pages/Home/homepage";
 import LoginPortal from "./Pages/Home/LoginPortal";
+import AdminLayout from "./Pages/Admin/AdminLayout";
 
 // Placeholder Pages
 function BrowseCanteensPlaceholder() {
@@ -36,6 +37,9 @@ function App() {
         <Route path="/canteens" element={<BrowseCanteensPlaceholder />} />
         <Route path="/register" element={<RegisterPlaceholder />} />
         <Route path="/login" element={<LoginPortal />} />
+
+         {/* Admin routes */}
+        <Route path="/admin/*" element={<AdminLayout />} />
 
         {/* login routes */}
         <Route path="/login/user" element={<LoginPagePlaceholder />} />
