@@ -27,6 +27,8 @@ const ACTIVITY_CONFIG = {
   USER_UNBLOCKED:      { label: 'User Unblocked',      color: 'bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-300 ring-1 ring-green-200 dark:ring-green-800' },
   COMPLAINT_SUBMITTED: { label: 'Complaint',           color: 'bg-yellow-50 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-300 ring-1 ring-yellow-200 dark:ring-yellow-800' },
   COMPLAINT_RESOLVED:  { label: 'Resolved',            color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300 ring-1 ring-emerald-200 dark:ring-emerald-800' },
+  CANTEEN_VISIBLE:     { label: 'Canteen Visible',     color: 'bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-300 ring-1 ring-green-200 dark:ring-green-800' },
+CANTEEN_HIDDEN:      { label: 'Canteen Hidden',      color: 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-600' },
 };
 
 const BAR_COLORS = ['#22c55e', '#16a34a', '#4ade80', '#15803d', '#86efac', '#166534'];
