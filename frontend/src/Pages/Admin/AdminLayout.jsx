@@ -3,6 +3,8 @@ import AdminSidebar from "./components/AdminSidebar";
 import AdminDashboard from "./AdminDashboard";
 import AdminProfile from "./AdminProfile";
 import AdminHeader from "./components/AdminHeader";
+import CanteenApprovals from './CanteenApprovals';
+import CanteenVisibility from './Canteenvisibility';
 
 // ── Placeholder pages — each gets its own title ───────────────────────────────
 function UsersPlaceholder() {
@@ -50,7 +52,7 @@ function ComplaintsPlaceholder() {
   );
 }
 
-function CanteenApprovalsPlaceholder() {
+/*function CanteenApprovalsPlaceholder() {
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
       <AdminHeader title="Canteen Management" subtitle="Approvals & canteen oversight" />
@@ -78,7 +80,7 @@ function ManageCanteensPlaceholder() {
       </div>
     </div>
   );
-}
+}*/
 
 // ── Layout ────────────────────────────────────────────────────────────────────
 export default function AdminLayout() {
@@ -91,8 +93,8 @@ export default function AdminLayout() {
           <Route path="users"              element={<UsersPlaceholder />} />
           <Route path="analytics"          element={<AnalyticsPlaceholder />} />
           <Route path="complaints"         element={<ComplaintsPlaceholder />} />
-          <Route path="canteens/approvals" element={<CanteenApprovalsPlaceholder />} />
-          <Route path="canteens/manage"    element={<ManageCanteensPlaceholder />} />
+          <Route path="canteens/approvals" element={<CanteenApprovals />} />
+          <Route path="canteens/manage"    element={<CanteenVisibility />} />
           <Route path="profile"            element={<AdminProfile />} />
           <Route path="*"                  element={<AdminDashboard />} />
         </Routes>
