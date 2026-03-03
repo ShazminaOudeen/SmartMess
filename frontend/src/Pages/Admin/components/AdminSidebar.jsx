@@ -339,7 +339,7 @@ export default function AdminSidebar() {
       </aside>
 
       {/* Main Content Area */}
-      <AdminPlaceholder page={active.charAt(0).toUpperCase() + active.slice(1)} />
+     <div className="flex-1" />
     </div>
   );
 }
