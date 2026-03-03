@@ -5,9 +5,10 @@ import AdminProfile from "./AdminProfile";
 import AdminHeader from "./components/AdminHeader";
 import CanteenApprovals from './CanteenApprovals';
 import CanteenVisibility from './Canteenvisibility';
+import UserManagement from './Usermanagement';
 
 // ── Placeholder pages — each gets its own title ───────────────────────────────
-function UsersPlaceholder() {
+/*function UsersPlaceholder() {
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
       <AdminHeader title="Users" subtitle="Manage all user accounts" />
@@ -20,7 +21,7 @@ function UsersPlaceholder() {
       </div>
     </div>
   );
-}
+}*/
 
 function AnalyticsPlaceholder() {
   return (
@@ -90,7 +91,7 @@ export default function AdminLayout() {
       <div className="flex-1 min-w-0 overflow-hidden">
         <Routes>
           <Route path="dashboard"          element={<AdminDashboard />} />
-          <Route path="users"              element={<UsersPlaceholder />} />
+          <Route path="users"              element={<UserManagement />} />
           <Route path="analytics"          element={<AnalyticsPlaceholder />} />
           <Route path="complaints"         element={<ComplaintsPlaceholder />} />
           <Route path="canteens/approvals" element={<CanteenApprovals />} />

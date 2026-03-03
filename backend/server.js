@@ -28,11 +28,13 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const dashboardRoutes    = require('./Admin/routes/dashboardRoutes');
 const adminProfileRoutes = require('./Admin/routes/Adminprofileroutes');
 const Canteenroutes      = require('./Admin/routes/Canteenroutes');
+const userRoutes = require('./Admin/routes/userRoutes');
 require('./Admin/models/User');
 
 app.use('/api/admin/dashboard', dashboardRoutes);
 app.use('/api/admin', adminProfileRoutes);
 app.use('/api/admin', Canteenroutes);
+app.use('/api/admin', userRoutes);
 
 // Health check
 app.get('/', (_req, res) => res.send('SmartMess backend running!'));
