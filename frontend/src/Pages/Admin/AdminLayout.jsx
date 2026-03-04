@@ -7,6 +7,7 @@ import CanteenApprovals from './CanteenApprovals';
 import CanteenVisibility from './Canteenvisibility';
 import UserManagement from './Usermanagement';
 import Analytics from './Analytics';
+import ComplaintManagement from './ComplaintManagement';
 
 
 
@@ -25,7 +26,7 @@ import Analytics from './Analytics';
   );
 }*/
 
-function ComplaintsPlaceholder() {
+/*function ComplaintsPlaceholder() {
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
       <AdminHeader title="Complaint Management" subtitle="Review and resolve complaints" />
@@ -38,7 +39,7 @@ function ComplaintsPlaceholder() {
       </div>
     </div>
   );
-}
+}*/
 
 
 
@@ -51,8 +52,8 @@ export default function AdminLayout() {
         <Routes>
           <Route path="dashboard"          element={<AdminDashboard />} />
           <Route path="users"              element={<UserManagement />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="complaints"         element={<ComplaintsPlaceholder />} />
+          <Route path="analytics"          element={<Analytics />} />
+          <Route path="complaints" element={<ComplaintManagement />} />
           <Route path="canteens/approvals" element={<CanteenApprovals />} />
           <Route path="canteens/manage"    element={<CanteenVisibility />} />
           <Route path="profile"            element={<AdminProfile />} />
