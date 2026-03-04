@@ -30,13 +30,16 @@ const adminProfileRoutes = require('./Admin/routes/Adminprofileroutes');
 const Canteenroutes      = require('./Admin/routes/Canteenroutes');
 const userRoutes = require('./Admin/routes/userRoutes');
 const analyticsRoutes = require('./Admin/routes/analyticsRoutes');
+const complaintRoutes = require('./Admin/routes/complaintRoutes');
 require('./Admin/models/User');
+
 
 app.use('/api/admin/dashboard', dashboardRoutes);
 app.use('/api/admin', adminProfileRoutes);
 app.use('/api/admin', Canteenroutes);
 app.use('/api/admin', userRoutes);
 app.use('/api/admin', analyticsRoutes);
+app.use('/api/admin', complaintRoutes);
 
 // Health check
 app.get('/', (_req, res) => res.send('SmartMess backend running!'));
