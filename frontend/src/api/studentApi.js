@@ -5,6 +5,19 @@ export const canteenAPI = {
   getById: (id) => fetch(`${BASE_URL}/canteens/${id}`).then(r => r.json()),
   getMeals: (canteenId, filters = '') =>
     fetch(`${BASE_URL}/canteens/${canteenId}/meals?${filters}`).then(r => r.json()),
+
+  // 🔍 Global search across all canteens
+  globalSearch: (query = '', category = '', maxPrice = '') => {
+    let params = [];
+    if (query) params.push(`q=${encodeURIComponent(query)}`);
+    if (category && category !== 'All') params.push(`category=${category}`);
+    if (maxPrice) params.push(`maxPrice=${maxPrice}`);
+    return fetch(`${BASE_URL}/canteens/search?${params.join('&')}`).then(r => r.json());
+  },
+
+  // 📊 Most ordered meals for student
+  getMostOrdered: (studentId) =>
+    fetch(`${BASE_URL}/canteens/most-ordered/${studentId}`).then(r => r.json()),
 };
 
 export const cartAPI = {

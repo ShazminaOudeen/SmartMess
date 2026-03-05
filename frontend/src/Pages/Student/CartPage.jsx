@@ -1,9 +1,27 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { ShoppingCart, ArrowLeft, Minus, Plus, Trash2, Store, ChevronRight } from "lucide-react";
 import { cartAPI } from "../../api/studentApi";
 
-// 🔴 TEMPORARY: Replace with real student ID once Member 1 adds auth
 const TEMP_STUDENT_ID = "64f1a2b3c4d5e6f7a8b9c0d1";
+
+function CartSkeleton() {
+  return (
+    <div className="space-y-3">
+      {[1, 2].map((i) => (
+        <div key={i} className="card flex items-center gap-4">
+          <div className="skeleton w-16 h-16 rounded-xl flex-shrink-0" />
+          <div className="flex-1">
+            <div className="skeleton h-4 w-2/3 mb-2" />
+            <div className="skeleton h-3 w-1/3" />
+          </div>
+          <div className="skeleton h-8 w-24 rounded-xl" />
+          <div className="skeleton h-5 w-16" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function CartPage() {
   const [cart, setCart] = useState(null);
@@ -11,9 +29,7 @@ export default function CartPage() {
   const [updating, setUpdating] = useState("");
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchCart();
-  }, []);
+  useEffect(() => { fetchCart(); }, []);
 
   const fetchCart = async () => {
     const res = await cartAPI.getCart(TEMP_STUDENT_ID);
@@ -23,21 +39,14 @@ export default function CartPage() {
 
   const handleUpdate = async (mealId, quantity) => {
     setUpdating(mealId);
-    const res = await cartAPI.updateItem({
-      studentId: TEMP_STUDENT_ID,
-      mealId,
-      quantity,
-    });
+    const res = await cartAPI.updateItem({ studentId: TEMP_STUDENT_ID, mealId, quantity });
     if (res.success) setCart(res.data);
     setUpdating("");
   };
 
   const handleRemove = async (mealId) => {
     setUpdating(mealId);
-    const res = await cartAPI.removeItem({
-      studentId: TEMP_STUDENT_ID,
-      mealId,
-    });
+    const res = await cartAPI.removeItem({ studentId: TEMP_STUDENT_ID, mealId });
     if (res.success) setCart(res.data);
     setUpdating("");
   };
@@ -47,125 +56,88 @@ export default function CartPage() {
     setCart(null);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="animate-spin-slow text-5xl">🛒</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 px-4 py-8">
+    <div className="min-h-screen px-6 py-8">
       <div className="max-w-3xl mx-auto">
 
         {/* Header */}
-        <div className="animate-fade-down flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-jungle-700 dark:text-primary-400">
-              🛒 Your Cart
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-              Review your items before checkout
-            </p>
+        <div className="page-header animate-fade-down">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="section-title">Your <span className="text-gradient">Cart</span></h1>
+              <p className="section-subtitle">Review items before checkout</p>
+            </div>
+            <button onClick={() => navigate("/student/canteens")}
+              className="btn-secondary flex items-center gap-2 text-sm">
+              <ArrowLeft size={14} /> Continue Shopping
+            </button>
           </div>
-          <button
-            onClick={() => navigate("/student/canteens")}
-            className="btn-secondary text-sm"
-          >
-            ← Continue Shopping
-          </button>
         </div>
 
-        {/* Empty Cart */}
-        {(!cart || cart.items.length === 0) && (
-          <div className="card text-center py-16 animate-fade-in">
-            <p className="text-6xl mb-4">🛒</p>
-            <h2 className="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">
-              Your cart is empty
-            </h2>
-            <p className="text-gray-500 dark:text-gray-400 mb-6">
-              Add some delicious meals first!
-            </p>
-            <button
-              onClick={() => navigate("/student/canteens")}
-              className="btn-primary"
-            >
+        {loading && <CartSkeleton />}
+
+        {/* Empty */}
+        {!loading && (!cart || cart.items.length === 0) && (
+          <div className="card text-center py-20 animate-fade-in">
+            <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-4">
+              <ShoppingCart size={28} className="text-gray-400" />
+            </div>
+            <p className="font-bold text-gray-800 dark:text-white text-lg mb-1">Your cart is empty</p>
+            <p className="text-gray-500 text-sm mb-6">Add some meals to get started</p>
+            <button onClick={() => navigate("/student/canteens")} className="btn-primary mx-auto">
               Browse Canteens
             </button>
           </div>
         )}
 
-        {/* Cart Items */}
-        {cart && cart.items.length > 0 && (
+        {/* Cart Content */}
+        {!loading && cart && cart.items.length > 0 && (
           <>
-            {/* Canteen Info */}
-            <div className="card mb-4 animate-fade-up flex items-center gap-3">
-              <span className="text-2xl">🏪</span>
+            {/* Canteen info */}
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 mb-4 animate-fade-up">
+              <Store size={16} className="text-green-600 dark:text-green-400" />
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Ordering from</p>
-                <p className="font-bold text-gray-800 dark:text-white">
-                  {cart.canteen?.name || "Canteen"}
-                </p>
+                <p className="text-[11px] text-green-600 dark:text-green-500 font-medium">Ordering from</p>
+                <p className="text-sm font-bold text-green-800 dark:text-green-300">{cart.canteen?.name || "Canteen"}</p>
               </div>
             </div>
 
             {/* Items */}
-            <div className="space-y-3 mb-4">
+            <div className="space-y-3 mb-5">
               {cart.items.map((item, i) => (
-                <div
-                  key={item.meal?._id || i}
-                  className={`card animate-fade-up animation-delay-${(i + 1) * 100} flex items-center gap-4`}
-                >
-                  {/* Meal Image */}
-                  <div className="w-16 h-16 rounded-lg bg-jungle-50 dark:bg-gray-700 flex items-center justify-center text-2xl overflow-hidden flex-shrink-0">
-                    {item.meal?.image ? (
-                      <img src={item.meal.image} alt={item.meal.name} className="w-full h-full object-cover" />
-                    ) : "🍛"}
+                <div key={item.meal?._id || i}
+                  className={`card flex items-center gap-4 animate-fade-up animation-delay-${(i + 1) * 100} hover:shadow-md transition-all`}>
+                  <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {item.meal?.image
+                      ? <img src={item.meal.image} alt={item.meal.name} className="w-full h-full object-cover" />
+                      : <ShoppingCart size={20} className="text-green-300" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">{item.meal?.name || "Meal"}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">RM {item.price?.toFixed(2)} each</p>
                   </div>
 
-                  {/* Info */}
-                  <div className="flex-1">
-                    <h3 className="font-bold text-gray-800 dark:text-white">
-                      {item.meal?.name || "Meal"}
-                    </h3>
-                    <p className="text-jungle-600 dark:text-primary-400 font-semibold text-sm">
-                      RM {item.price?.toFixed(2)} each
-                    </p>
-                  </div>
-
-                  {/* Quantity Controls */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleUpdate(item.meal?._id, item.quantity - 1)}
+                  {/* Qty controls */}
+                  <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 rounded-xl p-1">
+                    <button onClick={() => handleUpdate(item.meal?._id, item.quantity - 1)}
                       disabled={updating === item.meal?._id}
-                      className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white font-bold hover:bg-primary-100 transition-colors flex items-center justify-center"
-                    >
-                      −
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-500 hover:text-gray-800 dark:hover:text-white hover:bg-white dark:hover:bg-gray-600 transition-all disabled:opacity-40">
+                      <Minus size={13} />
                     </button>
-                    <span className="w-6 text-center font-bold text-gray-800 dark:text-white">
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() => handleUpdate(item.meal?._id, item.quantity + 1)}
+                    <span className="w-6 text-center text-sm font-bold text-gray-800 dark:text-white">{item.quantity}</span>
+                    <button onClick={() => handleUpdate(item.meal?._id, item.quantity + 1)}
                       disabled={updating === item.meal?._id}
-                      className="w-8 h-8 rounded-full bg-primary-600 text-white font-bold hover:bg-primary-700 transition-colors flex items-center justify-center"
-                    >
-                      +
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-white hover:opacity-90 transition-all disabled:opacity-40"
+                      style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}>
+                      <Plus size={13} />
                     </button>
                   </div>
 
-                  {/* Subtotal */}
                   <div className="text-right min-w-[70px]">
-                    <p className="font-bold text-gray-800 dark:text-white">
-                      RM {(item.price * item.quantity).toFixed(2)}
-                    </p>
-                    <button
-                      onClick={() => handleRemove(item.meal?._id)}
-                      disabled={updating === item.meal?._id}
-                      className="text-red-400 hover:text-red-600 text-xs mt-1"
-                    >
-                      Remove
+                    <p className="font-bold text-gray-900 dark:text-white text-sm">RM {(item.price * item.quantity).toFixed(2)}</p>
+                    <button onClick={() => handleRemove(item.meal?._id)} disabled={updating === item.meal?._id}
+                      className="flex items-center gap-1 text-[11px] text-red-400 hover:text-red-600 mt-1 ml-auto transition-colors">
+                      <Trash2 size={10} /> Remove
                     </button>
                   </div>
                 </div>
@@ -173,38 +145,31 @@ export default function CartPage() {
             </div>
 
             {/* Summary */}
-            <div className="card animate-fade-up mb-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-gray-600 dark:text-gray-400">
-                  Items ({cart.items.length})
-                </span>
-                <span className="text-gray-800 dark:text-white font-medium">
-                  RM {cart.totalAmount?.toFixed(2)}
-                </span>
+            <div className="glass-card mb-5 animate-fade-up">
+              <div className="flex justify-between items-center text-sm mb-3">
+                <span className="text-gray-500">Subtotal ({cart.items.length} items)</span>
+                <span className="font-medium text-gray-800 dark:text-white">RM {cart.totalAmount?.toFixed(2)}</span>
               </div>
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3 flex justify-between items-center">
-                <span className="text-lg font-bold text-gray-800 dark:text-white">
-                  Total
-                </span>
-                <span className="text-2xl font-bold text-jungle-700 dark:text-primary-400">
-                  RM {cart.totalAmount?.toFixed(2)}
-                </span>
+              <div className="flex justify-between items-center text-sm mb-4">
+                <span className="text-gray-500">Service fee</span>
+                <span className="font-medium text-green-600">Free</span>
+              </div>
+              <div className="border-t border-gray-100 dark:border-gray-700 pt-4 flex justify-between items-center">
+                <span className="font-bold text-gray-900 dark:text-white">Total</span>
+                <span className="text-2xl font-bold text-gradient">RM {cart.totalAmount?.toFixed(2)}</span>
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {/* Actions */}
             <div className="flex gap-3 animate-fade-up">
-              <button
-                onClick={handleClear}
-                className="btn-secondary flex-1"
-              >
-                🗑️ Clear Cart
+              <button onClick={handleClear}
+                className="flex items-center gap-2 btn-danger">
+                <Trash2 size={14} /> Clear Cart
               </button>
-              <button
-                onClick={() => navigate("/student/checkout")}
-                className="btn-primary flex-1 text-lg"
-              >
-                Proceed to Checkout →
+              <button onClick={() => navigate("/student/checkout")}
+                className="btn-primary flex-1 flex items-center justify-center gap-2 py-3 text-base">
+                Proceed to Checkout
+                <ChevronRight size={17} />
               </button>
             </div>
           </>
