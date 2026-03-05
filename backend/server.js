@@ -5,6 +5,8 @@ const cors = require('cors');
 
 // Load environment variables
 dotenv.config();
+const dns = require('node:dns');
+dns.setServers(['1.1.1.1', '1.0.0.1']);
 
 const app = express();
 const port = process.env.PORT || 5000;

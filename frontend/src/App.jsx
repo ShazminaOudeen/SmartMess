@@ -13,6 +13,7 @@ import CheckoutPage from "./Pages/Student/CheckoutPage";
 import OrderHistoryPage from "./Pages/Student/OrderHistoryPage";
 import ExpenseDashboard from "./Pages/Student/ExpenseDashboard";
 import RatingFeedbackForm from "./Pages/Student/RatingFeedbackForm";
+import GlobalSearchPage from "./Pages/Student/GlobalSearchPage";
 
 function RegisterPlaceholder() {
   return <h1 style={{ padding: "100px", textAlign: "center" }}>Register Page (Coming Soon)</h1>;
@@ -33,10 +34,11 @@ function App() {
         <Route path="/login/canteen" element={<LoginPagePlaceholder />} />
         <Route path="/login/admin" element={<LoginPagePlaceholder />} />
 
-        {/* ✅ Student Routes WITH Sidebar Layout */}
+        {/* Student Routes WITH Sidebar Layout */}
         <Route element={<StudentLayout />}>
           <Route path="/student/canteens" element={<CanteenListingPage />} />
           <Route path="/student/canteens/:canteenId/meals" element={<MealListingPage />} />
+          <Route path="/student/search" element={<GlobalSearchPage />} />
           <Route path="/student/cart" element={<CartPage />} />
           <Route path="/student/checkout" element={<CheckoutPage />} />
           <Route path="/student/orders" element={<OrderHistoryPage />} />
