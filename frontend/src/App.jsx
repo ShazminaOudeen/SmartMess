@@ -6,6 +6,7 @@ import StudentRegister from "./Pages/Auth/StudentRegister";
 import CanteenRegister from "./Pages/Auth/CanteenRegister";
 import ProfilePage from "./Pages/Auth/ProfilePage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminLayout from "./Pages/Admin/AdminLayout";
 
 function App() {
   return (
@@ -27,6 +28,9 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* Admin routes */}
+        <Route path="/admin/*" element={<AdminLayout />} />
       </Routes>
     </Router>
   );
