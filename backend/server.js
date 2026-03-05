@@ -3,22 +3,27 @@ const connectDB = require('./config/db');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const path = require('path');
-
 dotenv.config();
-
 const dns = require('node:dns');
 dns.setServers(['1.1.1.1', '1.0.0.1']);
 
 const app = express();
 const port = process.env.PORT || 5000;
-
 connectDB();
 
+// ✅ CORS - allows ALL localhost ports automatically
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: function(origin, callback) {
+    if (!origin || origin.startsWith('http://localhost:')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true,
 }));
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -45,7 +50,14 @@ app.use('/api/admin', userRoutes);
 app.use('/api/admin', analyticsRoutes);
 app.use('/api/admin', complaintRoutes);
 
-// Health
+// Student Module Routes
+app.use('/api/student/canteens', require('./routes/canteenBrowseRoutes'));
+app.use('/api/student/cart',     require('./routes/cartRoutes'));
+app.use('/api/student/orders',   require('./routes/orderRoutes'));
+app.use('/api/student/payment',  require('./routes/paymentRoutes'));
+app.use('/api/student/tracking', require('./routes/studentTrackingRoutes'));
+
+// Health check
 app.get('/', (_req, res) => res.send('SmartMess backend running!'));
 app.get('/api/health', (_req, res) =>
   res.json({ ok: true, ts: new Date().toISOString() })
