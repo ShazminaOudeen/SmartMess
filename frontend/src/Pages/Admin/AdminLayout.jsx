@@ -7,7 +7,7 @@ import CanteenApprovals from './CanteenApprovals';
 import CanteenVisibility from './Canteenvisibility';
 import UserManagement from './Usermanagement';
 import Analytics from './Analytics';
-import ComplaintManagement from './ComplaintManagement';
+import ComplaintManagement from './Complaintmanagement';
 
 
 
