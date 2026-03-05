@@ -22,6 +22,10 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// --- Auth routes ---
+const authRoutes = require('./Auth/routes/authRoutes');
+app.use('/api/auth', authRoutes);
+
 // --- Health / root ---
 app.get('/', (_req, res) => res.send('Hello from the backend!'));
 app.get('/api/health', (_req, res) =>

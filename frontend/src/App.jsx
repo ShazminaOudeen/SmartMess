@@ -1,46 +1,32 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import HomePage from "./Pages/Home/homepage";
 import LoginPortal from "./Pages/Home/LoginPortal";
-
-// Placeholder Pages
-function BrowseCanteensPlaceholder() {
-  return (
-    <h1 style={{ padding: "100px", textAlign: "center" }}>
-      Browse Canteens Page (Coming Soon)
-    </h1>
-  );
-}
-
-function RegisterPlaceholder() {
-  return (
-    <h1 style={{ padding: "100px", textAlign: "center" }}>
-      Register Page (Coming Soon)
-    </h1>
-  );
-}
-
-// Simple placeholder for login pages
-function LoginPagePlaceholder({ role }) {
-  return (
-    <h1 style={{ padding: "100px", textAlign: "center" }}>
-      Login Page (Coming Soon)
-    </h1>
-  );
-}
+import LoginPage from "./Pages/Auth/LoginPage";
+import StudentRegister from "./Pages/Auth/StudentRegister";
+import CanteenRegister from "./Pages/Auth/CanteenRegister";
+import ProfilePage from "./Pages/Auth/ProfilePage";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
     <Router>
       <Routes>
+        {/* Public routes */}
         <Route path="/" element={<HomePage />} />
-        <Route path="/canteens" element={<BrowseCanteensPlaceholder />} />
-        <Route path="/register" element={<RegisterPlaceholder />} />
         <Route path="/login" element={<LoginPortal />} />
+        <Route path="/login/:role" element={<LoginPage />} />
+        <Route path="/register/student" element={<StudentRegister />} />
+        <Route path="/register/canteen" element={<CanteenRegister />} />
 
-        {/* login routes */}
-        <Route path="/login/user" element={<LoginPagePlaceholder />} />
-        <Route path="/login/canteen" element={<LoginPagePlaceholder />} />
-        <Route path="/login/admin" element={<LoginPagePlaceholder/>} />
+        {/* Protected routes */}
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </Router>
   );
