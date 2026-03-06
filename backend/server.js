@@ -50,6 +50,11 @@ app.use('/api/admin', userRoutes);
 app.use('/api/admin', analyticsRoutes);
 app.use('/api/admin', complaintRoutes);
 
+//Canteen module routes
+const canteenProfileRoutes = require('./Canteen/routes/canteenProfileRoutes');
+
+app.use('/api/canteen', canteenProfileRoutes);
+
 // Student Module Routes
 app.use('/api/student/canteens', require('./routes/canteenBrowseRoutes'));
 app.use('/api/student/cart',     require('./routes/cartRoutes'));
