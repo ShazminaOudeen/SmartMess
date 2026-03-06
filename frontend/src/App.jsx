@@ -25,6 +25,9 @@ import ExpenseDashboard from "./Pages/Student/ExpenseDashboard";
 import RatingFeedbackForm from "./Pages/Student/RatingFeedbackForm";
 import GlobalSearchPage from "./Pages/Student/GlobalSearchPage";
 
+//canteen pages
+import CanteenLayout from "./Pages/Canteen/CanteenLayout";
+
 function App() {
   return (
     <Router>
@@ -48,6 +51,9 @@ function App() {
 
         {/* Admin Routes */}
         <Route path="/admin/*" element={<AdminLayout />} />
+
+        {/*canteen Routes*/}
+        <Route path="/canteen/*" element={<CanteenLayout />} />
 
         {/* Student Routes WITH Sidebar Layout */}
         <Route element={<StudentLayout />}>
