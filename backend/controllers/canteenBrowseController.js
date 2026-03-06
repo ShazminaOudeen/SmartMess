@@ -1,4 +1,4 @@
-const Canteen = require('../models/Canteen');
+const Canteen = require('../models/canteen');
 const Meal = require('../models/Meal');
 const Order = require('../models/Order');
 
