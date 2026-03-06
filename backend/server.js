@@ -52,8 +52,11 @@ app.use('/api/admin', complaintRoutes);
 
 //Canteen module routes
 const canteenProfileRoutes = require('./Canteen/routes/canteenProfileRoutes');
+const mealRoutes = require('./Canteen/routes/mealRoutes');
 
+app.use('/api/canteen/meals', mealRoutes);        
 app.use('/api/canteen', canteenProfileRoutes);
+
 
 // Student Module Routes
 app.use('/api/student/canteens', require('./routes/canteenBrowseRoutes'));

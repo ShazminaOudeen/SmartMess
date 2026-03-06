@@ -1,17 +1,27 @@
 const mongoose = require('mongoose');
 
+const sizeSchema = new mongoose.Schema({
+  enabled: { type: Boolean, default: false },
+  price:   { type: Number,  default: 0     },
+}, { _id: false });
+
 const mealSchema = new mongoose.Schema({
-  name: { type: String, required: true },
+  canteen:     { type: mongoose.Schema.Types.ObjectId, ref: 'Canteen', required: true },
+  name:        { type: String, required: true },
   description: { type: String },
-  price: { type: Number, required: true },
-  category: { 
-    type: String, 
-    enum: ['Rice', 'Noodles', 'Drinks', 'Snacks', 'Desserts', 'Other'],
+  category:    { 
+    type: String,
+    enum: ['Rice', 'Snacks', 'Desserts', 'Drinks', 'Breakfast', 'Other'],
     default: 'Other'
   },
-  image: { type: String },
+  basePrice:   { type: Number, required: true },
+  sizes: {
+    Small:  { type: sizeSchema, default: () => ({}) },
+    Medium: { type: sizeSchema, default: () => ({}) },
+    Large:  { type: sizeSchema, default: () => ({}) },
+  },
+  image:       { type: String },
   isAvailable: { type: Boolean, default: true },
-  canteen: { type: mongoose.Schema.Types.ObjectId, ref: 'Canteen', required: true },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Meal', mealSchema);

@@ -1,10 +1,9 @@
-//canteen>components>CanteenSidebar.jsx
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "../../../context/ThemeContext";
 import logo from "../../../assets/logo.png";
 import {
-  LayoutDashboard, Store, Clock, UtensilsCrossed, PlusCircle,
+  LayoutDashboard, Store, Clock, UtensilsCrossed,
   ShoppingBag, DollarSign, Star, Home, LogOut,
   ChevronLeft, ChevronRight, Sun, Moon, ChevronDown,
 } from "lucide-react";
@@ -25,19 +24,11 @@ const NAV = [
       { key: "hours",   label: "Operating Hours", href: "/canteen/hours"   },
     ],
   },
-  {
-    key: "meals",
-    label: "Meals",
-    icon: UtensilsCrossed,
-    children: [
-      { key: "add-meal",     label: "Add Meal",     href: "/canteen/meals/add"    },
-      { key: "manage-meals", label: "Manage Meals", href: "/canteen/meals/manage" },
-    ],
-  },
-  { key: "orders",   label: "Orders",             href: "/canteen/orders",   icon: ShoppingBag },
-  { key: "revenue",  label: "Revenue",            href: "/canteen/revenue",  icon: DollarSign  },
-  { key: "feedback", label: "Reviews & Feedback", href: "/canteen/feedback", icon: Star        },
-  { key: "home",     label: "Home",               href: "/",                 icon: Home        },
+  { key: "meals",    label: "Meals",              href: "/canteen/meals",    icon: UtensilsCrossed },
+  { key: "orders",   label: "Orders",             href: "/canteen/orders",   icon: ShoppingBag     },
+  { key: "revenue",  label: "Revenue",            href: "/canteen/revenue",  icon: DollarSign      },
+  { key: "feedback", label: "Reviews & Feedback", href: "/canteen/feedback", icon: Star            },
+  { key: "home",     label: "Home",               href: "/",                 icon: Home            },
 ];
 
 export default function CanteenSidebar() {
@@ -46,21 +37,20 @@ export default function CanteenSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
-  const [openGroups, setOpenGroups] = useState({ "my-canteen": true, meals: true });
+  const [openGroups, setOpenGroups] = useState({ "my-canteen": true });
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const canteen = { name: user.canteenName || user.name || 'My Canteen', image: user.profileImage || null };
 
   const getActive = () => {
     const p = location.pathname;
-    if (p === "/canteen/dashboard")    return "dashboard";
-    if (p === "/canteen/profile")      return "profile";
-    if (p === "/canteen/hours")        return "hours";
-    if (p === "/canteen/meals/add")    return "add-meal";
-    if (p === "/canteen/meals/manage") return "manage-meals";
-    if (p === "/canteen/orders")       return "orders";
-    if (p === "/canteen/revenue")      return "revenue";
-    if (p === "/canteen/feedback")     return "feedback";
+    if (p === "/canteen/dashboard")  return "dashboard";
+    if (p === "/canteen/profile")    return "profile";
+    if (p === "/canteen/hours")      return "hours";
+    if (p === "/canteen/meals")      return "meals";
+    if (p === "/canteen/orders")     return "orders";
+    if (p === "/canteen/revenue")    return "revenue";
+    if (p === "/canteen/feedback")   return "feedback";
     return "dashboard";
   };
 
@@ -70,9 +60,6 @@ export default function CanteenSidebar() {
     setActive(getActive());
     if (location.pathname.startsWith("/canteen/profile") || location.pathname.startsWith("/canteen/hours")) {
       setOpenGroups(g => ({ ...g, "my-canteen": true }));
-    }
-    if (location.pathname.startsWith("/canteen/meals")) {
-      setOpenGroups(g => ({ ...g, meals: true }));
     }
   }, [location.pathname]);
 
@@ -107,7 +94,7 @@ export default function CanteenSidebar() {
       >
         <div className="relative flex-shrink-0">
           {canteen.image ? (
-            <img src={canteen.image} alt={canteen.name}
+            <img src={`http://localhost:5000${canteen.image}`} alt={canteen.name}
               className="w-10 h-10 rounded-xl object-cover ring-2 ring-green-400/30" />
           ) : (
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center shadow-sm">
