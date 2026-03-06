@@ -1,6 +1,7 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import StudentSidebar from "../components/StudentSidebar";
 import NotificationBell from "../components/NotificationBell";
+import { useTheme } from "../context/ThemeContext";
 
 const PAGE_TITLES = {
   "/student/canteens": "Canteens",
@@ -15,40 +16,40 @@ const PAGE_TITLES = {
 export default function StudentLayout() {
   const location = useLocation();
   const navigate  = useNavigate();
+  const { theme } = useTheme();
+  const dark = theme === "dark";
 
   const title = Object.entries(PAGE_TITLES).find(([path]) =>
     location.pathname.startsWith(path)
   )?.[1] || "SmartMess";
 
   return (
-    <div className="flex min-h-screen bg-mesh">
+    <div className={`flex min-h-screen ${dark ? "bg-gray-900" : "bg-gray-50"}`}>
       <StudentSidebar />
 
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
 
-        {/* ── Top bar ── */}
+        {/* Top bar — matches sidebar theme */}
         <header
           className="sticky top-0 z-10 flex items-center justify-between px-6 py-3"
           style={{
-            background: "linear-gradient(135deg, #0f1f14 0%, #0a1a0f 100%)",
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            background: dark ? "rgb(3, 7, 18)" : "#ffffff",
+            borderBottom: dark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.06)",
           }}
         >
-          {/* Left — breadcrumb style */}
+          {/* Breadcrumb */}
           <div className="flex items-center gap-2">
-            <span className="text-gray-600 text-xs font-medium">SmartMess</span>
-            <span className="text-gray-700 text-xs">/</span>
-            <span className="text-green-400 text-xs font-semibold">{title}</span>
+            <span className={`text-xs font-medium ${dark ? "text-gray-600" : "text-gray-400"}`}>SmartMess</span>
+            <span className={`text-xs ${dark ? "text-gray-700" : "text-gray-300"}`}>/</span>
+            <span className="text-green-500 text-xs font-semibold">{title}</span>
           </div>
 
-          {/* Right — bell + avatar */}
+          {/* Right side */}
           <div className="flex items-center gap-3">
             <NotificationBell />
-
-            {/* Avatar */}
             <div
-              className="flex items-center gap-2 pl-3 cursor-pointer group"
-              style={{ borderLeft: "1px solid rgba(255,255,255,0.08)" }}
+              className="flex items-center gap-2 pl-3 cursor-pointer"
+              style={{ borderLeft: dark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)" }}
               onClick={() => navigate("/student/canteens")}
             >
               <div
@@ -58,14 +59,14 @@ export default function StudentLayout() {
                 TS
               </div>
               <div className="hidden sm:block">
-                <p className="text-white text-xs font-semibold leading-none">Test Student</p>
-                <p className="text-gray-500 text-[10px] mt-0.5">Student</p>
+                <p className={`text-xs font-semibold leading-none ${dark ? "text-white" : "text-gray-900"}`}>Test Student</p>
+                <p className={`text-[10px] mt-0.5 ${dark ? "text-gray-500" : "text-gray-400"}`}>Student</p>
               </div>
             </div>
           </div>
         </header>
 
-        {/* ── Page content ── */}
+        {/* Page content */}
         <main className="flex-1 overflow-auto">
           <Outlet />
         </main>
