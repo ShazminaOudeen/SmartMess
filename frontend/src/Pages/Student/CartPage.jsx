@@ -24,7 +24,7 @@ function CartSkeleton() {
 }
 
 export default function CartPage() {
-  const [cart, setCart] = useState(null);
+  const [cart, setCart]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState("");
   const navigate = useNavigate();
@@ -32,144 +32,212 @@ export default function CartPage() {
   useEffect(() => { fetchCart(); }, []);
 
   const fetchCart = async () => {
+    setLoading(true);
     const res = await cartAPI.getCart(TEMP_STUDENT_ID);
     if (res.success) setCart(res.data);
     setLoading(false);
   };
 
-  const handleUpdate = async (mealId, quantity) => {
-    setUpdating(mealId);
-    const res = await cartAPI.updateItem({ studentId: TEMP_STUDENT_ID, mealId, quantity });
+  // ✅ Fixed increase quantity
+  const handleIncrease = async (item) => {
+    setUpdating(item.meal._id || item.meal);
+    const res = await cartAPI.updateItem({
+      studentId: TEMP_STUDENT_ID,
+      mealId: item.meal._id || item.meal,
+      quantity: item.quantity + 1,
+    });
     if (res.success) setCart(res.data);
+    else await fetchCart(); // fallback re-fetch
     setUpdating("");
   };
 
-  const handleRemove = async (mealId) => {
+  // ✅ Fixed decrease quantity (removes if hits 0)
+  const handleDecrease = async (item) => {
+    const mealId = item.meal._id || item.meal;
     setUpdating(mealId);
-    const res = await cartAPI.removeItem({ studentId: TEMP_STUDENT_ID, mealId });
+    if (item.quantity <= 1) {
+      // Remove item if quantity would go to 0
+      const res = await cartAPI.removeItem({
+        studentId: TEMP_STUDENT_ID,
+        mealId,
+      });
+      if (res.success) setCart(res.data);
+      else await fetchCart();
+    } else {
+      const res = await cartAPI.updateItem({
+        studentId: TEMP_STUDENT_ID,
+        mealId,
+        quantity: item.quantity - 1,
+      });
+      if (res.success) setCart(res.data);
+      else await fetchCart();
+    }
+    setUpdating("");
+  };
+
+  // ✅ Fixed remove item
+  const handleRemove = async (item) => {
+    const mealId = item.meal._id || item.meal;
+    setUpdating(mealId);
+    const res = await cartAPI.removeItem({
+      studentId: TEMP_STUDENT_ID,
+      mealId,
+    });
     if (res.success) setCart(res.data);
+    else await fetchCart();
     setUpdating("");
   };
 
   const handleClear = async () => {
     await cartAPI.clearCart(TEMP_STUDENT_ID);
-    setCart(null);
+    await fetchCart();
   };
+
+  const items    = cart?.items || [];
+  const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const canteen  = cart?.canteen;
 
   return (
     <div className="min-h-screen px-6 py-8">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-2xl mx-auto">
 
         {/* Header */}
-        <div className="page-header animate-fade-down">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="section-title">Your <span className="text-gradient">Cart</span></h1>
-              <p className="section-subtitle">Review items before checkout</p>
-            </div>
-            <button onClick={() => navigate("/student/canteens")}
-              className="btn-secondary flex items-center gap-2 text-sm">
-              <ArrowLeft size={14} /> Continue Shopping
-            </button>
+        <div className="page-header animate-fade-down flex items-start justify-between">
+          <div>
+            <h1 className="section-title">My <span className="text-gradient">Cart</span></h1>
+            <p className="section-subtitle">Review your items before checkout</p>
           </div>
+          <button onClick={() => navigate("/student/canteens")}
+            className="btn-secondary flex items-center gap-2 text-sm">
+            <ArrowLeft size={14} /> Continue Shopping
+          </button>
         </div>
 
         {loading && <CartSkeleton />}
 
-        {/* Empty */}
-        {!loading && (!cart || cart.items.length === 0) && (
+        {!loading && items.length === 0 && (
           <div className="card text-center py-20 animate-fade-in">
             <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-4">
               <ShoppingCart size={28} className="text-gray-400" />
             </div>
-            <p className="font-bold text-gray-800 dark:text-white text-lg mb-1">Your cart is empty</p>
-            <p className="text-gray-500 text-sm mb-6">Add some meals to get started</p>
+            <p className="font-semibold text-gray-700 dark:text-gray-300 text-lg mb-1">Your cart is empty</p>
+            <p className="text-sm text-gray-400 mb-6">Add some meals to get started!</p>
             <button onClick={() => navigate("/student/canteens")} className="btn-primary mx-auto">
               Browse Canteens
             </button>
           </div>
         )}
 
-        {/* Cart Content */}
-        {!loading && cart && cart.items.length > 0 && (
+        {!loading && items.length > 0 && (
           <>
-            {/* Canteen info */}
-            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 mb-4 animate-fade-up">
-              <Store size={16} className="text-green-600 dark:text-green-400" />
-              <div>
-                <p className="text-[11px] text-green-600 dark:text-green-500 font-medium">Ordering from</p>
-                <p className="text-sm font-bold text-green-800 dark:text-green-300">{cart.canteen?.name || "Canteen"}</p>
+            {/* Canteen banner */}
+            {canteen && (
+              <div className="flex items-center gap-3 px-4 py-3 rounded-xl mb-4 animate-fade-up"
+                style={{ background: "linear-gradient(135deg, #16a34a15, #4ade8010)", border: "1px solid #16a34a30" }}>
+                <Store size={16} className="text-green-600 flex-shrink-0" />
+                <p className="text-sm font-semibold text-gray-800 dark:text-white flex-1">
+                  {canteen.name || "Canteen"}
+                </p>
+                <span className="text-xs text-gray-500">{items.length} item{items.length !== 1 ? "s" : ""}</span>
               </div>
-            </div>
+            )}
 
-            {/* Items */}
-            <div className="space-y-3 mb-5">
-              {cart.items.map((item, i) => (
-                <div key={item.meal?._id || i}
-                  className={`card flex items-center gap-4 animate-fade-up animation-delay-${(i + 1) * 100} hover:shadow-md transition-all`}>
-                  <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {item.meal?.image
-                      ? <img src={item.meal.image} alt={item.meal.name} className="w-full h-full object-cover" />
-                      : <ShoppingCart size={20} className="text-green-300" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">{item.meal?.name || "Meal"}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">RM {item.price?.toFixed(2)} each</p>
-                  </div>
+            {/* Cart items */}
+            <div className="space-y-3 mb-6">
+              {items.map((item, i) => {
+                const mealId = item.meal?._id || item.meal;
+                const isUpdating = updating === mealId;
+                return (
+                  <div key={mealId || i}
+                    className={`card flex items-center gap-4 animate-fade-up animation-delay-${Math.min((i+1)*100, 300)} transition-all ${
+                      isUpdating ? "opacity-60" : ""
+                    }`}>
 
-                  {/* Qty controls */}
-                  <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 rounded-xl p-1">
-                    <button onClick={() => handleUpdate(item.meal?._id, item.quantity - 1)}
-                      disabled={updating === item.meal?._id}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-500 hover:text-gray-800 dark:hover:text-white hover:bg-white dark:hover:bg-gray-600 transition-all disabled:opacity-40">
-                      <Minus size={13} />
-                    </button>
-                    <span className="w-6 text-center text-sm font-bold text-gray-800 dark:text-white">{item.quantity}</span>
-                    <button onClick={() => handleUpdate(item.meal?._id, item.quantity + 1)}
-                      disabled={updating === item.meal?._id}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-white hover:opacity-90 transition-all disabled:opacity-40"
-                      style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}>
-                      <Plus size={13} />
-                    </button>
-                  </div>
+                    {/* Meal image/icon */}
+                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {item.meal?.image
+                        ? <img src={item.meal.image} alt={item.name} className="w-full h-full object-cover" />
+                        : <ShoppingCart size={20} className="text-green-300 dark:text-gray-500" />}
+                    </div>
 
-                  <div className="text-right min-w-[70px]">
-                    <p className="font-bold text-gray-900 dark:text-white text-sm">RM {(item.price * item.quantity).toFixed(2)}</p>
-                    <button onClick={() => handleRemove(item.meal?._id)} disabled={updating === item.meal?._id}
-                      className="flex items-center gap-1 text-[11px] text-red-400 hover:text-red-600 mt-1 ml-auto transition-colors">
-                      <Trash2 size={10} /> Remove
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{item.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        RS {item.price?.toFixed(2)} each
+                      </p>
+                    </div>
+
+                    {/* ✅ Quantity controls */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => handleDecrease(item)}
+                        disabled={isUpdating}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-red-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-40"
+                      >
+                        <Minus size={12} />
+                      </button>
+                      <span className="w-7 text-center font-bold text-gray-900 dark:text-white text-sm">
+                        {item.quantity}
+                      </span>
+                      <button
+                        onClick={() => handleIncrease(item)}
+                        disabled={isUpdating}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white transition-all disabled:opacity-40"
+                        style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}
+                      >
+                        <Plus size={12} />
+                      </button>
+                    </div>
+
+                    {/* Subtotal */}
+                    <div className="text-right flex-shrink-0 min-w-[60px]">
+                      <p className="font-bold text-gray-900 dark:text-white text-sm">
+                        RS {(item.price * item.quantity).toFixed(2)}
+                      </p>
+                    </div>
+
+                    {/* ✅ Remove button */}
+                    <button
+                      onClick={() => handleRemove(item)}
+                      disabled={isUpdating}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all flex-shrink-0 disabled:opacity-40"
+                    >
+                      <Trash2 size={14} />
                     </button>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Summary */}
-            <div className="glass-card mb-5 animate-fade-up">
-              <div className="flex justify-between items-center text-sm mb-3">
-                <span className="text-gray-500">Subtotal ({cart.items.length} items)</span>
-                <span className="font-medium text-gray-800 dark:text-white">RM {cart.totalAmount?.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm mb-4">
-                <span className="text-gray-500">Service fee</span>
-                <span className="font-medium text-green-600">Free</span>
-              </div>
-              <div className="border-t border-gray-100 dark:border-gray-700 pt-4 flex justify-between items-center">
-                <span className="font-bold text-gray-900 dark:text-white">Total</span>
-                <span className="text-2xl font-bold text-gradient">RM {cart.totalAmount?.toFixed(2)}</span>
+            <div className="glass-card mb-4 animate-fade-up">
+              <h3 className="font-bold text-gray-900 dark:text-white mb-4 text-sm">Order Summary</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                  <span>Subtotal ({items.length} item{items.length !== 1 ? "s" : ""})</span>
+                  <span>RS {subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                  <span>Service Fee</span>
+                  <span className="text-green-600 font-medium">Free</span>
+                </div>
+                <div className="border-t border-gray-100 dark:border-gray-700 pt-2 flex justify-between font-bold text-gray-900 dark:text-white text-base">
+                  <span>Total</span>
+                  <span className="text-gradient">RS {subtotal.toFixed(2)}</span>
+                </div>
               </div>
             </div>
 
             {/* Actions */}
             <div className="flex gap-3 animate-fade-up">
               <button onClick={handleClear}
-                className="flex items-center gap-2 btn-danger">
+                className="btn-danger flex items-center gap-2 text-sm px-4">
                 <Trash2 size={14} /> Clear Cart
               </button>
               <button onClick={() => navigate("/student/checkout")}
-                className="btn-primary flex-1 flex items-center justify-center gap-2 py-3 text-base">
-                Proceed to Checkout
-                <ChevronRight size={17} />
+                className="btn-primary flex-1 flex items-center justify-center gap-2">
+                Proceed to Checkout <ChevronRight size={15} />
               </button>
             </div>
           </>
