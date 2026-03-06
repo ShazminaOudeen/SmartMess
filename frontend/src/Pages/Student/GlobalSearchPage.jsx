@@ -1,9 +1,20 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, SlidersHorizontal, Plus, Check, Store, X, Utensils } from "lucide-react";
+import { Search, SlidersHorizontal, Plus, Check, Store, X, Utensils, ChevronDown } from "lucide-react";
 import { canteenAPI, cartAPI } from "../../api/studentApi";
 
-const CATEGORIES = ["All", "Rice", "Noodles", "Drinks", "Snacks", "Desserts", "Other"];
+const CATEGORIES = ["All", "Breakfast", "Lunch", "Dinner", "Dessert", "Drinks", "Snacks", "Other"];
+
+const PRICE_OPTIONS = [
+  { label: "Any Price",    value: "" },
+  { label: "Under RS 5",  value: "5" },
+  { label: "Under RS 10", value: "10" },
+  { label: "Under RS 15", value: "15" },
+  { label: "Under RS 20", value: "20" },
+  { label: "Under RS 30", value: "30" },
+  { label: "Under RS 50", value: "50" },
+];
+
 const TEMP_STUDENT_ID = "64f1a2b3c4d5e6f7a8b9c0d1";
 
 function MealSkeleton() {
@@ -21,15 +32,14 @@ function MealSkeleton() {
 }
 
 export default function GlobalSearchPage() {
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("All");
-  const [maxPrice, setMaxPrice] = useState("");
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
-  const [addedMap, setAddedMap] = useState({});
-  const [toast, setToast] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
+  const [query, setQuery]         = useState("");
+  const [category, setCategory]   = useState("All");
+  const [maxPrice, setMaxPrice]   = useState("");
+  const [results, setResults]     = useState([]);
+  const [loading, setLoading]     = useState(false);
+  const [searched, setSearched]   = useState(false);
+  const [addedMap, setAddedMap]   = useState({});
+  const [toast, setToast]         = useState("");
   const debounceRef = useRef(null);
   const navigate = useNavigate();
 
@@ -40,9 +50,7 @@ export default function GlobalSearchPage() {
       return;
     }
     clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      doSearch();
-    }, 400);
+    debounceRef.current = setTimeout(() => { doSearch(); }, 400);
     return () => clearTimeout(debounceRef.current);
   }, [query, category, maxPrice]);
 
@@ -76,6 +84,8 @@ export default function GlobalSearchPage() {
     setSearched(false);
   };
 
+  const selectedPriceLabel = PRICE_OPTIONS.find((o) => o.value === maxPrice)?.label || "Any Price";
+
   return (
     <div className="min-h-screen px-6 py-8">
       <div className="max-w-3xl mx-auto">
@@ -96,11 +106,13 @@ export default function GlobalSearchPage() {
 
         {/* Search Box */}
         <div className="glass-card mb-5 animate-fade-up">
+
+          {/* Search input */}
           <div className="relative mb-4">
             <Search size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Search for nasi lemak, mee goreng, teh tarik..."
+              placeholder="Search for breakfast, nasi lemak, teh tarik..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="input-field pl-11 pr-10 py-3 text-base"
@@ -114,51 +126,62 @@ export default function GlobalSearchPage() {
             )}
           </div>
 
-          {/* Category Pills */}
-          <div className="flex flex-wrap gap-2 mb-3">
-            {CATEGORIES.map((cat) => (
-              <button key={cat} onClick={() => setCategory(cat)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-                  category === cat
-                    ? "text-white"
-                    : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-green-50 hover:text-green-700"
-                }`}
-                style={category === cat ? { background: "linear-gradient(135deg, #16a34a, #15803d)" } : {}}>
-                {cat}
-              </button>
-            ))}
-          </div>
-
-          {/* Price filter toggle */}
-          <div className="flex items-center justify-between">
-            <button onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-1.5 text-xs font-semibold transition-all px-3 py-1.5 rounded-lg border ${
-                showFilters || maxPrice
-                  ? "border-green-400 text-green-600 bg-green-50 dark:bg-green-900/20"
-                  : "border-gray-200 dark:border-gray-600 text-gray-500"
-              }`}>
-              <SlidersHorizontal size={12} />
-              Price Filter
-              {maxPrice && <span className="w-1.5 h-1.5 rounded-full bg-green-500" />}
-            </button>
-            {(query || category !== "All" || maxPrice) && (
-              <button onClick={clearAll} className="text-xs text-red-500 hover:text-red-600 flex items-center gap-1">
-                <X size={12} /> Clear all
-              </button>
-            )}
-          </div>
-
-          {showFilters && (
-            <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 animate-fade-in">
-              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">Max Price (RM)</label>
-              <input type="number" placeholder="e.g. 10" value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
-                className="input-field w-28 text-xs py-1.5" />
-              {maxPrice && (
-                <button onClick={() => setMaxPrice("")} className="text-xs text-red-500 flex items-center gap-1">
-                  <X size={12} /> Clear
+          {/* Category + Price row */}
+          <div className="flex items-center justify-between gap-3 mb-3">
+            {/* Category pills */}
+            <div className="flex flex-wrap gap-2 flex-1">
+              {CATEGORIES.map((cat) => (
+                <button key={cat} onClick={() => setCategory(cat)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                    category === cat
+                      ? "text-white"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-green-50 hover:text-green-700"
+                  }`}
+                  style={category === cat ? { background: "linear-gradient(135deg, #16a34a, #15803d)" } : {}}>
+                  {cat}
                 </button>
+              ))}
+            </div>
+
+            {/* ✅ Price dropdown */}
+            <div className="relative flex-shrink-0">
+              <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 z-10">
+                <SlidersHorizontal size={13} className={maxPrice ? "text-green-600" : "text-gray-400"} />
+              </div>
+              <select
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                className={`appearance-none pl-8 pr-8 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-400 ${
+                  maxPrice
+                    ? "border-green-400 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400"
+                    : "border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:border-green-300"
+                }`}
+              >
+                {PRICE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <ChevronDown size={13} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            </div>
+          </div>
+
+          {/* Active filters + clear */}
+          {(query || category !== "All" || maxPrice) && (
+            <div className="flex items-center gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
+              <span className="text-xs text-gray-400">Active:</span>
+              {category !== "All" && (
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-medium border border-green-200 dark:border-green-800">
+                  {category} <button onClick={() => setCategory("All")}><X size={10} /></button>
+                </span>
               )}
+              {maxPrice && (
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-medium border border-green-200 dark:border-green-800">
+                  {selectedPriceLabel} <button onClick={() => setMaxPrice("")}><X size={10} /></button>
+                </span>
+              )}
+              <button onClick={clearAll} className="text-xs text-red-500 hover:text-red-600 ml-auto flex items-center gap-1">
+                <X size={11} /> Clear all
+              </button>
             </div>
           )}
         </div>
@@ -171,7 +194,7 @@ export default function GlobalSearchPage() {
           </div>
         )}
 
-        {/* Initial state */}
+        {/* Initial empty state */}
         {!searched && !loading && (
           <div className="card text-center py-16 animate-fade-in">
             <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3">
@@ -185,7 +208,7 @@ export default function GlobalSearchPage() {
         {/* Skeletons */}
         {loading && (
           <div className="space-y-3">
-            {[1, 2, 3, 4].map((i) => <MealSkeleton key={i} />)}
+            {[1,2,3,4].map((i) => <MealSkeleton key={i} />)}
           </div>
         )}
 
@@ -213,7 +236,7 @@ export default function GlobalSearchPage() {
           <div className="space-y-3">
             {results.map((meal, i) => (
               <div key={meal._id}
-                className={`card flex items-center gap-4 animate-fade-up animation-delay-${Math.min((i + 1) * 50, 500)} hover:shadow-md transition-all duration-300`}>
+                className={`card flex items-center gap-4 animate-fade-up animation-delay-${Math.min((i+1)*50, 500)} hover:shadow-md transition-all duration-300`}>
                 <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
                   {meal.image
                     ? <img src={meal.image} alt={meal.name} className="w-full h-full object-cover" />
@@ -231,7 +254,7 @@ export default function GlobalSearchPage() {
                 </div>
                 <div className="flex flex-col items-end gap-2 flex-shrink-0">
                   <span className="font-bold text-gray-900 dark:text-white text-sm">
-                    <span className="text-xs text-gray-400 mr-0.5">RM</span>{meal.price?.toFixed(2)}
+                    <span className="text-xs text-gray-400 mr-0.5">RS</span>{meal.price?.toFixed(2)}
                   </span>
                   <button
                     onClick={() => handleAddToCart(meal)}

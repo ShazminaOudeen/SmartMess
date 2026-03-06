@@ -186,7 +186,7 @@ export default function CanteenListingPage() {
                 <div className="flex items-center justify-between text-xs mb-4">
                   <span className="flex items-center gap-1.5 text-gray-500">
                     <Clock size={12} className="text-green-500" />
-                    {canteen.operatingHours || "Open Now"}
+                    {typeof canteen.operatingHours === "string" ? canteen.operatingHours : "Open Now"}
                   </span>
                   <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 font-medium">
                     <MapPin size={10} />
