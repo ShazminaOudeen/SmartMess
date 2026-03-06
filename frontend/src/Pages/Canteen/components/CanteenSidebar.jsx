@@ -5,7 +5,7 @@ import logo from "../../../assets/logo.png";
 import {
   LayoutDashboard, Store, Clock, UtensilsCrossed,
   ShoppingBag, DollarSign, Star, Home, LogOut,
-  ChevronLeft, ChevronRight, Sun, Moon, ChevronDown,
+  ChevronLeft, ChevronRight, Sun, Moon, ChevronDown,AlertCircle,
 } from "lucide-react";
 
 const NAV = [
@@ -28,9 +28,9 @@ const NAV = [
   { key: "orders",   label: "Orders",             href: "/canteen/orders",   icon: ShoppingBag     },
   { key: "revenue",  label: "Revenue",            href: "/canteen/revenue",  icon: DollarSign      },
   { key: "feedback", label: "Reviews & Feedback", href: "/canteen/feedback", icon: Star            },
-  { key: "home",     label: "Home",               href: "/",                 icon: Home            },
-];
-
+{ key: "report",   label: "Report an Issue",    href: "/canteen/report",   icon: AlertCircle     },
+{ key: "home",     label: "Home",               href: "/",                 icon: Home            },
+]
 export default function CanteenSidebar() {
   const { theme, toggleTheme } = useTheme();
   const dark = theme === "dark";
@@ -51,6 +51,7 @@ export default function CanteenSidebar() {
     if (p === "/canteen/orders")     return "orders";
     if (p === "/canteen/revenue")    return "revenue";
     if (p === "/canteen/feedback")   return "feedback";
+    if (p === "/canteen/report") return "report";
     return "dashboard";
   };
 

@@ -4,6 +4,10 @@ import CanteenSidebar from "./components/CanteenSidebar";
 import CanteenProfile from './Canteenprofile';
 import OperatingHours from './Operatinghours';
 import MealsPage from './Mealspage';
+import OrdersPage from './OrdersPage';
+import RevenuePage from './RevenuePage';
+import ReviewsPage from './ReviewsPage';
+import CanteenDashboard from './CanteenDashboard';
 
 
 function Placeholder({ title, emoji }) {
@@ -22,15 +26,15 @@ export default function CanteenLayout() {
       <CanteenSidebar />
       <div className="flex-1 min-w-0 overflow-hidden">
         <Routes>
-          <Route path="dashboard"    element={<Placeholder title="Dashboard"          emoji="📊" />} />
+        <Route index element={<CanteenDashboard />} />
           <Route path="profile" element={<CanteenProfile />} />
         <Route path="hours"   element={<OperatingHours />} />   
           <Route path="meals" element={<MealsPage />} />
-          <Route path="orders"       element={<Placeholder title="Orders"             emoji="🛍️" />} />
-          <Route path="revenue"      element={<Placeholder title="Revenue"            emoji="💰" />} />
-          <Route path="feedback"     element={<Placeholder title="Reviews & Feedback" emoji="⭐" />} />
-          <Route path="*"            element={<Placeholder title="Dashboard"          emoji="📊" />} />
-        </Routes>
+         <Route path="orders" element={<OrdersPage />} />
+          <Route path="revenue" element={<RevenuePage />} />
+          <Route path="feedback" element={<ReviewsPage />} />
+          <Route path="report" element={<Placeholder title="Report an Issue" emoji="🚨" />} />
+ <Route path="dashboard" element={<CanteenDashboard />} />        </Routes>
       </div>
     </div>
   );
