@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import CanteenSidebar from "./components/CanteenSidebar";
 import CanteenProfile from './Canteenprofile';
 import OperatingHours from './Operatinghours';
+import MealsPage from './Mealspage';
 
 
 function Placeholder({ title, emoji }) {
@@ -24,8 +25,7 @@ export default function CanteenLayout() {
           <Route path="dashboard"    element={<Placeholder title="Dashboard"          emoji="📊" />} />
           <Route path="profile" element={<CanteenProfile />} />
         <Route path="hours"   element={<OperatingHours />} />   
-          <Route path="meals/add"    element={<Placeholder title="Add Meal"           emoji="🍽️" />} />
-          <Route path="meals/manage" element={<Placeholder title="Manage Meals"       emoji="📋" />} />
+          <Route path="meals" element={<MealsPage />} />
           <Route path="orders"       element={<Placeholder title="Orders"             emoji="🛍️" />} />
           <Route path="revenue"      element={<Placeholder title="Revenue"            emoji="💰" />} />
           <Route path="feedback"     element={<Placeholder title="Reviews & Feedback" emoji="⭐" />} />
