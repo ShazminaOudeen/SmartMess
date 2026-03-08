@@ -4,7 +4,6 @@ const Meal = require('../models/Meal');
 // Get student's cart
 const getCart = async (req, res) => {
   try {
-    // Temporary: use studentId from params until auth is ready
     const cart = await Cart.findOne({ student: req.params.studentId })
       .populate('items.meal')
       .populate('canteen');
@@ -19,10 +18,12 @@ const getCart = async (req, res) => {
 const addToCart = async (req, res) => {
   try {
     const { studentId, mealId, quantity } = req.body;
-
     const meal = await Meal.findById(mealId);
     if (!meal) return res.status(404).json({ success: false, message: 'Meal not found' });
-    if (!meal.isAvailable) return res.status(400).json({ success: false, message: 'Meal not available' });
+    if (meal.isAvailable === false) return res.status(400).json({ success: false, message: 'Meal not available' });
+
+    // Use basePrice since Aathika's meal model uses basePrice
+    const mealPrice = meal.basePrice || meal.price || 0;
 
     let cart = await Cart.findOne({ student: studentId });
 
@@ -41,12 +42,11 @@ const addToCart = async (req, res) => {
     if (existingItem) {
       existingItem.quantity += quantity || 1;
     } else {
-      cart.items.push({ meal: mealId, quantity: quantity || 1, price: meal.price });
+      cart.items.push({ meal: mealId, quantity: quantity || 1, price: mealPrice });
     }
 
     cart.totalAmount = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     await cart.save();
-
     res.status(200).json({ success: true, data: cart });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -57,22 +57,17 @@ const addToCart = async (req, res) => {
 const updateCartItem = async (req, res) => {
   try {
     const { studentId, mealId, quantity } = req.body;
-
     const cart = await Cart.findOne({ student: studentId });
     if (!cart) return res.status(404).json({ success: false, message: 'Cart not found' });
-
     const item = cart.items.find(item => item.meal.toString() === mealId);
     if (!item) return res.status(404).json({ success: false, message: 'Item not found in cart' });
-
     if (quantity <= 0) {
       cart.items = cart.items.filter(item => item.meal.toString() !== mealId);
     } else {
       item.quantity = quantity;
     }
-
     cart.totalAmount = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     await cart.save();
-
     res.status(200).json({ success: true, data: cart });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -83,14 +78,11 @@ const updateCartItem = async (req, res) => {
 const removeFromCart = async (req, res) => {
   try {
     const { studentId, mealId } = req.body;
-
     const cart = await Cart.findOne({ student: studentId });
     if (!cart) return res.status(404).json({ success: false, message: 'Cart not found' });
-
     cart.items = cart.items.filter(item => item.meal.toString() !== mealId);
     cart.totalAmount = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     await cart.save();
-
     res.status(200).json({ success: true, data: cart });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
