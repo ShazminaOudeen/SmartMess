@@ -10,7 +10,7 @@ const TEMP_STUDENT_ID = "64f1a2b3c4d5e6f7a8b9c0d1";
 
 const PAYMENT_METHODS = [
   { id: "cash",        label: "Cash on Pickup",  desc: "Pay when you collect your order",  Icon: Banknote },
-  { id: "online",      label: "Online Banking",  desc: "FPX / Internet Banking",           Icon: CreditCard },
+  { id: "card",        label: "Online Banking",  desc: "FPX / Internet Banking",           Icon: CreditCard },
   { id: "ewallet",     label: "E-Wallet",        desc: "Touch n Go / GrabPay / Boost",     Icon: Smartphone },
 ];
 

@@ -22,8 +22,8 @@ const addToCart = async (req, res) => {
     if (!meal) return res.status(404).json({ success: false, message: 'Meal not found' });
     if (meal.isAvailable === false) return res.status(400).json({ success: false, message: 'Meal not available' });
 
-    // Use basePrice if price doesn't exist
-    const mealPrice = meal.price || meal.basePrice || 0;
+    // Use basePrice since Aathika's meal model uses basePrice
+    const mealPrice = meal.basePrice || meal.price || 0;
 
     let cart = await Cart.findOne({ student: studentId });
 
