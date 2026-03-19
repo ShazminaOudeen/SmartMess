@@ -80,7 +80,13 @@ export default function LoginPage() {
             const result = await login(formData.email, formData.password, mappedRole);
             if (result.success) {
                 toast.success('Login successful!');
-                setTimeout(() => navigate('/'), 800);
+                const dashboardRoutes = {
+                    student: '/', 
+                    canteen: '/canteen/dashboard',
+                    admin: '/admin/dashboard',
+                };
+                const route = dashboardRoutes[mappedRole] || '/';
+                setTimeout(() => navigate(route), 800);
             }
         } catch (error) {
             const msg = error.response?.data?.message || 'Login failed. Please try again.';
@@ -187,6 +193,17 @@ export default function LoginPage() {
                                     {showPassword ? <MdVisibilityOff className="w-5 h-5" /> : <MdVisibility className="w-5 h-5" />}
                                 </button>
                             </div>
+                        </div>
+
+                        {/* Forgot Password Link */}
+                        <div className="flex justify-end mt-1">
+                            <Link
+                                to="/forgot-password"
+                                className="text-xs font-semibold hover:underline"
+                                style={{ color: config.borderColor }}
+                            >
+                                Forgot password?
+                            </Link>
                         </div>
 
                         {/* Submit Button */}

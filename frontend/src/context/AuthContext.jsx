@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(localStorage.getItem('token') || null);
     const [loading, setLoading] = useState(true);
 
-    // Create axios instance with auth header
+    // Create axios instance with auth header and interceptor
     const api = useCallback(() => {
         const instance = axios.create({
             baseURL: API_URL,
@@ -29,6 +29,21 @@ export const AuthProvider = ({ children }) => {
         if (token) {
             instance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         }
+
+        instance.interceptors.response.use(
+            (response) => response,
+            (error) => {
+                if (error.response?.status === 401) {
+                    logout();
+                    // Don't force reload if already on login page
+                    if (!window.location.pathname.includes('/login')) {
+                        window.location.href = '/login';
+                    }
+                }
+                return Promise.reject(error);
+            }
+        );
+
         return instance;
     }, [token]);
 
@@ -64,6 +79,11 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (userData) => {
         const res = await api().post('/register', userData);
+        if (res.data.success && res.data.token) {
+            setToken(res.data.token);
+            setUser(res.data.user);
+            localStorage.setItem('token', res.data.token);
+        }
         return res.data;
     };
 

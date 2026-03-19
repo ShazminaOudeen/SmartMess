@@ -71,8 +71,8 @@ export default function StudentRegister() {
                 studentId: formData.studentId,
             });
             if (result.success) {
-                toast.success('Registration successful! Please login.');
-                setTimeout(() => navigate('/login/user'), 1500);
+                toast.success('Registration successful! Redirecting to your dashboard...');
+                setTimeout(() => navigate('/dashboard/student'), 1500);
             }
         } catch (error) {
             const msg = error.response?.data?.message || 'Registration failed. Please try again.';
@@ -176,6 +176,7 @@ export default function StudentRegister() {
                                     placeholder="Minimum 6 characters"
                                     className="input-field pl-10 pr-10"
                                     required
+                                    minLength={6}
                                 />
                                 <button
                                     type="button"
@@ -202,6 +203,7 @@ export default function StudentRegister() {
                                     placeholder="Confirm your password"
                                     className="input-field pl-10 pr-10"
                                     required
+                                    minLength={6}
                                 />
                                 <button
                                     type="button"

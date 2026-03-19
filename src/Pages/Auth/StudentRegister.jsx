@@ -71,8 +71,8 @@ export default function StudentRegister() {
                 studentId: formData.studentId,
             });
             if (result.success) {
-                toast.success('Registration successful! Please login.');
-                setTimeout(() => navigate('/login/user'), 1500);
+                toast.success('Registration successful! Redirecting to homepage...');
+                setTimeout(() => navigate('/'), 1500);
             }
         } catch (error) {
             const msg = error.response?.data?.message || 'Registration failed. Please try again.';
