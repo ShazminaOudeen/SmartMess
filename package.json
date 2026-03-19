@@ -1,22 +1,40 @@
 {
-  "name": "smartmess",
-  "version": "1.0.0",
-  "description": "[![MongoDB](https://img.shields.io/badge/MongoDB-4DB33D?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)\r [![Express.js](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)\r [![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)\r [![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)\r [![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)\r [![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-38BDF8?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)\r [![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)\r [![AI Chatbot](https://img.shields.io/badge/AI-Chatbot-blueviolet?style=for-the-badge)]()",
-  "main": "index.js",
-  "scripts": {},
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ShazminaOudeen/SmartMess.git"
+  "name": "client",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/ShazminaOudeen/SmartMess/issues"
+  "dependencies": {
+    "axios": "^1.13.6",
+    "jspdf": "^4.2.0",
+    "jspdf-autotable": "^5.0.7",
+    "lucide-react": "^0.577.0",
+    "papaparse": "^5.5.3",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-icons": "^5.5.0",
+    "react-is": "^19.2.4",
+    "react-router-dom": "^7.13.1",
+    "react-toastify": "^11.0.5",
+    "recharts": "^3.7.0"
   },
-  "homepage": "https://github.com/ShazminaOudeen/SmartMess#readme",
   "devDependencies": {
-    "@playwright/test": "^1.58.2",
-    "@types/node": "^25.3.3"
+    "@eslint/js": "^9.39.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "autoprefixer": "^10.4.18",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.19",
+    "vite": "^7.3.1"
   }
 }
