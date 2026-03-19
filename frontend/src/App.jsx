@@ -5,6 +5,8 @@ import LoginPage from "./Pages/Auth/LoginPage";
 import StudentRegister from "./Pages/Auth/StudentRegister";
 import CanteenRegister from "./Pages/Auth/CanteenRegister";
 import ProfilePage from "./Pages/Auth/ProfilePage";
+import ForgotPassword from "./Pages/Auth/ForgotPassword";
+import ResetPassword from "./Pages/Auth/ResetPassword";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -17,6 +19,8 @@ function App() {
         <Route path="/login/:role" element={<LoginPage />} />
         <Route path="/register/student" element={<StudentRegister />} />
         <Route path="/register/canteen" element={<CanteenRegister />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
 
         {/* Protected routes */}
         <Route

@@ -74,8 +74,8 @@ export default function CanteenRegister() {
                 licenseNumber: formData.licenseNumber,
             });
             if (result.success) {
-                toast.success('Registration successful! Please login.');
-                setTimeout(() => navigate('/login/canteen'), 1500);
+                toast.success('Registration successful! Redirecting to canteen dashboard...');
+                setTimeout(() => navigate('/canteen/dashboard'), 1500);
             }
         } catch (error) {
             const msg = error.response?.data?.message || 'Registration failed. Please try again.';
