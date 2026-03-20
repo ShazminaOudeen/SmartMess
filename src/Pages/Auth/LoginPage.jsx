@@ -81,7 +81,7 @@ export default function LoginPage() {
             if (result.success) {
                 toast.success('Login successful!');
                 const dashboardRoutes = {
-                    student: '/', 
+                    student: '/student/canteens', 
                     canteen: '/canteen/dashboard',
                     admin: '/admin/dashboard',
                 };
