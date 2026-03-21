@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import jsPDF from 'jspdf';
 import logoSrc from '../../assets/logo.png';
 import AdminHeader from './components/AdminHeader';
+import authFetch from '../../api/authFetch';
 import {
   Store, Clock, CheckCircle, XCircle, Eye, FileText,
   X, Download, RefreshCw, User, Phone, Mail,
@@ -288,14 +289,14 @@ const CanteenApprovals = () => {
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
-    try { const r = await fetch('/api/admin/canteens/stats'); const j = await r.json(); if (j.success) setStats(j.data); } catch {}
+    try { const r = await authFetch('/api/admin/canteens/stats'); const j = await r.json(); if (j.success) setStats(j.data); } catch {}
     finally { setStatsLoading(false); }
   }, []);
 
   const fetchCanteens = useCallback(async (status = 'pending') => {
     setLoading(true);
     try {
-      const r = await fetch(`/api/admin/canteens?status=${status}`);
+      const r = await authFetch(`/api/admin/canteens?status=${status}`);
       const j = await r.json();
       if (j.success) { setAllCanteens(j.data); setCanteens(j.data); }
     } catch {}
@@ -319,8 +320,7 @@ const CanteenApprovals = () => {
   const handleApprove = async (id) => {
     setActionLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const r = await fetch(`/api/admin/canteens/${id}/approve`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      const r = await authFetch(`/api/admin/canteens/${id}/approve`, { method: 'PUT', headers: { 'Content-Type': 'application/json' } });
       const j = await r.json();
       if (!r.ok) throw new Error(j.message);
       showToast('Canteen approved!'); setSelected(null); fetchCanteens(filterStatus); fetchStats();
@@ -332,8 +332,7 @@ const CanteenApprovals = () => {
     if (!rejectReason.trim()) return;
     setActionLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const r = await fetch(`/api/admin/canteens/${rejectModal}/reject`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ reason: rejectReason }) });
+      const r = await authFetch(`/api/admin/canteens/${rejectModal}/reject`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: rejectReason }) });
       const j = await r.json();
       if (!r.ok) throw new Error(j.message);
       showToast('Canteen rejected'); setRejectModal(null); setRejectReason(''); setSelected(null); fetchCanteens(filterStatus); fetchStats();

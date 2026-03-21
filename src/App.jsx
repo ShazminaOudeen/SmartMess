@@ -54,13 +54,25 @@ function App() {
         />
 
         {/* Admin Routes */}
-        <Route path="/admin/*" element={<AdminLayout />} />
+        <Route path="/admin/*" element={
+          <ProtectedRoute>
+            <AdminLayout />
+          </ProtectedRoute>
+        } />
 
         {/*canteen Routes*/}
-        <Route path="/canteen/*" element={<CanteenLayout />} />
+        <Route path="/canteen/*" element={
+          <ProtectedRoute>
+            <CanteenLayout />
+          </ProtectedRoute>
+        } />
 
         {/* Student Routes WITH Sidebar Layout */}
-        <Route element={<StudentLayout />}>
+        <Route element={
+          <ProtectedRoute>
+            <StudentLayout />
+          </ProtectedRoute>
+        }>
           <Route path="/student/canteens" element={<CanteenListingPage />} />
           <Route path="/student/canteens/:canteenId/meals" element={<MealListingPage />} />
           <Route path="/student/search" element={<GlobalSearchPage />} />

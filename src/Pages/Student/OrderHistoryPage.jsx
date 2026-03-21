@@ -8,8 +8,7 @@ import {
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { trackingAPI, orderAPI, cartAPI } from "../../api/studentApi";
-
-const TEMP_STUDENT_ID = "64f1a2b3c4d5e6f7a8b9c0d1";
+import { useAuth } from "../../context/AuthContext";
 
 const STATUS_CONFIG = {
   pending:   { badge: "badge-yellow", Icon: Clock,       label: "Pending",   pulse: true },
@@ -36,6 +35,8 @@ function OrderSkeleton() {
 }
 
 export default function OrderHistoryPage() {
+  const { user } = useAuth();
+  const studentId = user?._id;
   const [orders, setOrders]       = useState([]);
   const [loading, setLoading]     = useState(true);
   const [cancelling, setCancelling] = useState("");
@@ -48,16 +49,17 @@ export default function OrderHistoryPage() {
 
   const fetchOrders = async (showLoader = false) => {
     if (showLoader) setLoading(true);
-    const res = await trackingAPI.getHistory(TEMP_STUDENT_ID);
+    const res = await trackingAPI.getHistory(studentId);
     if (res.success) { setOrders(res.data); setLastRefreshed(new Date()); }
     if (showLoader) setLoading(false);
   };
 
   useEffect(() => {
+    if (!studentId) return;
     fetchOrders(true);
     pollRef.current = setInterval(() => fetchOrders(false), 30000);
     return () => clearInterval(pollRef.current);
-  }, []);
+  }, [studentId]);
 
   const handleCancel = async (orderId) => {
     setCancelling(orderId);
@@ -71,7 +73,7 @@ export default function OrderHistoryPage() {
     try {
       for (const item of order.items) {
         if (item.meal) {
-          await cartAPI.addToCart({ studentId: TEMP_STUDENT_ID, mealId: item.meal, quantity: item.quantity });
+          await cartAPI.addToCart({ studentId: studentId, mealId: item.meal, quantity: item.quantity });
         }
       }
       showToast("Items added to cart!");

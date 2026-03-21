@@ -34,7 +34,7 @@ export default function CanteenLayout() {
           <Route path="revenue" element={<RevenuePage />} />
           <Route path="feedback" element={<ReviewsPage />} />
           <Route path="report" element={<Placeholder title="Report an Issue" emoji="🚨" />} />
- <Route path="dashboard" element={<CanteenDashboard />} />        </Routes>
+        </Routes>
       </div>
     </div>
   );

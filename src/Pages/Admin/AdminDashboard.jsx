@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import AdminHeader from './components/AdminHeader';
+import authFetch from '../../api/authFetch';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell, LabelList,
@@ -103,7 +104,7 @@ const AdminDashboard = () => {
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/dashboard/stats');
+      const res = await authFetch('/api/admin/dashboard/stats');
       const json = await res.json();
       if (json.success) setStats(json.data);
     } catch {}
@@ -112,7 +113,7 @@ const AdminDashboard = () => {
 
   const fetchChart = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/dashboard/orders-by-canteen');
+      const res = await authFetch('/api/admin/dashboard/orders-by-canteen');
       const json = await res.json();
       if (json.success) setChartData(json.data);
     } catch {}
@@ -122,7 +123,7 @@ const AdminDashboard = () => {
   const fetchActivity = useCallback(async (p = 1) => {
     setLoadingActivity(true);
     try {
-      const res = await fetch(`/api/admin/dashboard/activity?page=${p}&limit=${LIMIT}`);
+      const res = await authFetch(`/api/admin/dashboard/activity?page=${p}&limit=${LIMIT}`);
       const json = await res.json();
       if (json.success) { setActivities(json.data); setActTotal(json.total); }
     } catch {}

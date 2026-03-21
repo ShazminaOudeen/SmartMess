@@ -152,7 +152,7 @@ export default function MealsPage() {
     setToast({ msg, type });
   };
 
-  const buildImgUrl = (p) => p ? `http://localhost:5000${p}` : null;
+  const buildImgUrl = (p) => p || null;
 
   // Fetch meals
   const fetchMeals = async () => {

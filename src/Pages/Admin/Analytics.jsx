@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import jsPDF from 'jspdf';
 import logoSrc from '../../assets/logo.png';
 import AdminHeader from './components/AdminHeader';
+import authFetch from '../../api/authFetch';
 import { useTheme } from '../../context/ThemeContext';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -225,7 +226,7 @@ const Analytics = () => {
   const fetchAnalytics = useCallback(async (m, y) => {
     setLoading(true);
     try {
-      const r = await fetch(`/api/admin/analytics/canteens?month=${m}&year=${y}`);
+      const r = await authFetch(`/api/admin/analytics/canteens?month=${m}&year=${y}`);
       const j = await r.json();
       if (j.success) {
         setAllCanteens(j.data);
@@ -239,7 +240,7 @@ const Analytics = () => {
   const fetchChart = useCallback(async (y) => {
     setChartLoading(true);
     try {
-      const r = await fetch(`/api/admin/analytics/monthly-trend?year=${y}`);
+      const r = await authFetch(`/api/admin/analytics/monthly-trend?year=${y}`);
       const j = await r.json();
       if (j.success) setChartData(j.data);
     } catch {}
