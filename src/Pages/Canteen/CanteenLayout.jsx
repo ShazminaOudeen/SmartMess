@@ -27,6 +27,7 @@ export default function CanteenLayout() {
       <div className="flex-1 min-w-0 overflow-hidden">
         <Routes>
         <Route index element={<CanteenDashboard />} />
+          <Route path="dashboard" element={<CanteenDashboard />} />
           <Route path="profile" element={<CanteenProfile />} />
         <Route path="hours"   element={<OperatingHours />} />   
           <Route path="meals" element={<MealsPage />} />

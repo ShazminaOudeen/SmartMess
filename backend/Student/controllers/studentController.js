@@ -51,7 +51,7 @@ const searchMeals = async (req, res) => {
     // Transform to include frontend-friendly fields
     const data = meals.map((meal) => {
       const obj = meal.toObject();
-      obj.price = obj.basePrice;
+      obj.price = obj.basePrice || 0;
       obj.available = obj.isAvailable;
       return obj;
     });
@@ -145,7 +145,7 @@ const getCanteenMeals = async (req, res) => {
     // Transform for frontend: price = basePrice, available = isAvailable
     const data = meals.map((meal) => {
       const obj = meal.toObject();
-      obj.price = obj.basePrice;
+      obj.price = obj.basePrice || 0;
       obj.available = obj.isAvailable;
       return obj;
     });
@@ -229,7 +229,7 @@ const addToCart = async (req, res) => {
       cart.items.push({
         meal: mealId,
         name: meal.name,
-        price: meal.basePrice,
+        price: meal.basePrice || 0,
         quantity,
       });
     }
