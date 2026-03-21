@@ -1,31 +1,22 @@
 const mongoose = require('mongoose');
 
-const operatingHourSchema = new mongoose.Schema({
-  day:       { type: String, enum: ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'], required: true },
-  isOpen:    { type: Boolean, default: true },
-  openTime:  { type: String, default: '08:00' },
-  closeTime: { type: String, default: '17:00' },
-}, { _id: false });
-
 const canteenSchema = new mongoose.Schema({
-  // Owner reference
-  owner:       { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  ownerName:   { type: String },
-
-  // Canteen info
-  canteenName:        { type: String, required: true },
-  email:       { type: String },
-  phone:       { type: String },
-  location:    { type: String },
-  description: { type: String },
-  image:       { type: String },
-
-  // Operating hours
-  operatingHours: [operatingHourSchema],
-
-  // Status
+  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
+  name: { type: String, required: true },
+  description: { type: String, default: '' },
+  location: { type: String, default: '' },
+  image: { type: String, default: '' },
+  licenseNumber: { type: String, default: '' },
   isApproved: { type: Boolean, default: false },
-  isActive:   { type: Boolean, default: true },
+  isRejected: { type: Boolean, default: false },
+  rejectionReason: { type: String, default: '' },
+  isActive: { type: Boolean, default: true },
+  operatingHours: [{
+    day: { type: String, required: true },
+    isOpen: { type: Boolean, default: true },
+    openTime: { type: String, default: '08:00' },
+    closeTime: { type: String, default: '20:00' },
+  }],
 }, { timestamps: true });
 
 module.exports = mongoose.model('Canteen', canteenSchema);

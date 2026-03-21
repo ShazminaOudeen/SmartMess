@@ -7,11 +7,10 @@ import MealsPage from './Mealspage';
 import OrdersPage from './OrdersPage';
 import RevenuePage from './RevenuePage';
 import ReviewsPage from './ReviewsPage';
-import ReportIssuePage from './ReportIssuePage';
 import CanteenDashboard from './CanteenDashboard';
 
 
-/*function Placeholder({ title, emoji }) {
+function Placeholder({ title, emoji }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 h-screen">
       <p className="text-5xl mb-4">{emoji}</p>
@@ -19,7 +18,7 @@ import CanteenDashboard from './CanteenDashboard';
       <p className="text-sm text-gray-400 mt-1">Coming soon</p>
     </div>
   );
-}*/
+}
 
 export default function CanteenLayout() {
   return (
@@ -34,8 +33,8 @@ export default function CanteenLayout() {
          <Route path="orders" element={<OrdersPage />} />
           <Route path="revenue" element={<RevenuePage />} />
           <Route path="feedback" element={<ReviewsPage />} />
-          <Route path="report" element={<ReportIssuePage />} />
- <Route path="dashboard" element={<CanteenDashboard />} />        </Routes>
+          <Route path="report" element={<Placeholder title="Report an Issue" emoji="🚨" />} />
+        </Routes>
       </div>
     </div>
   );

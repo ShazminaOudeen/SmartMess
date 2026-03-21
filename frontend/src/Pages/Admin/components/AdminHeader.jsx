@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import authFetch from '../../../api/authFetch';
 import { RefreshCw, Shield, UserPlus, X, Eye, EyeOff, Check } from 'lucide-react';
 
 const timeAgo = (date) => {
@@ -167,12 +168,10 @@ const AdminHeader = ({ title = 'Dashboard', subtitle = '', onRefresh, refreshing
     setLoading(true);
     setServerError('');
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/admin/create-admin', {
+      const res = await authFetch('/api/admin/create-admin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ ...form, role: 'admin' }),
       });

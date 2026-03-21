@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import jsPDF from 'jspdf';
 import logoSrc from '../../assets/logo.png';
 import AdminHeader from './components/AdminHeader';
+import authFetch from '../../api/authFetch';
 import {
   Users, UserCheck, UserX, Search, Filter,
   FileDown, RefreshCw, CheckCircle, XCircle,
@@ -204,13 +205,13 @@ const UserManagement = () => {
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
-    try { const r = await fetch('/api/admin/users/stats'); const j = await r.json(); if (j.success) setStats(j.data); } catch {}
+    try { const r = await authFetch('/api/admin/users/stats'); const j = await r.json(); if (j.success) setStats(j.data); } catch {}
     finally { setStatsLoading(false); }
   }, []);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
-    try { const r = await fetch('/api/admin/users'); const j = await r.json(); if (j.success) { setAllUsers(j.data); setUsers(j.data); } } catch {}
+    try { const r = await authFetch('/api/admin/users'); const j = await r.json(); if (j.success) { setAllUsers(j.data); setUsers(j.data); } } catch {}
     finally { setLoading(false); }
   }, []);
 
@@ -235,8 +236,7 @@ const UserManagement = () => {
   const handleBlock = async (id) => {
     setActionLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const r = await fetch(`/api/admin/users/${id}/block`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      const r = await authFetch(`/api/admin/users/${id}/block`, { method: 'PUT', headers: { 'Content-Type': 'application/json' } });
       const j = await r.json();
       if (!r.ok) throw new Error(j.message);
       setAllUsers(prev => prev.map(u => u._id?.toString() === id.toString() ? { ...u, isBlocked: true } : u));
@@ -250,8 +250,7 @@ const UserManagement = () => {
   const handleUnblock = async (id) => {
     setActionLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const r = await fetch(`/api/admin/users/${id}/unblock`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      const r = await authFetch(`/api/admin/users/${id}/unblock`, { method: 'PUT', headers: { 'Content-Type': 'application/json' } });
       const j = await r.json();
       if (!r.ok) throw new Error(j.message);
       setAllUsers(prev => prev.map(u => u._id?.toString() === id.toString() ? { ...u, isBlocked: false } : u));
