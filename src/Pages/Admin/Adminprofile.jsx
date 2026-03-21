@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import AdminHeader from './components/AdminHeader';
+import authFetch from '../../api/authFetch';
 import { Camera, Save, Lock, User, Phone, CreditCard, Mail, RefreshCw, Check, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -106,7 +107,6 @@ const AdminProfile = () => {
     setProfileLoading(true);
     setProfileServerErr('');
     try {
-      const token = localStorage.getItem('token');
       // Send as JSON — profilePicture is already a Base64 string
       const body = {
         name: form.name,
@@ -115,11 +115,10 @@ const AdminProfile = () => {
         ...(photoFile ? { profilePicture: photoFile } : {}),
       };
 
-      const res = await fetch('/api/admin/profile', {
+      const res = await authFetch('/api/admin/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(body),
       });
@@ -147,10 +146,9 @@ const AdminProfile = () => {
     setPassLoading(true);
     setPassServerErr('');
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/admin/change-password', {
+      const res = await authFetch('/api/admin/change-password', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ currentPassword: passForm.currentPassword, newPassword: passForm.newPassword }),
       });
       const json = await res.json();

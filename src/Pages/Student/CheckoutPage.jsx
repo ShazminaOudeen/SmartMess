@@ -5,8 +5,7 @@ import {
   Check, Loader2, ShoppingBag, ClipboardList, X
 } from "lucide-react";
 import { cartAPI, orderAPI, paymentAPI } from "../../api/studentApi";
-
-const TEMP_STUDENT_ID = "64f1a2b3c4d5e6f7a8b9c0d1";
+import { useAuth } from "../../context/AuthContext";
 
 const PAYMENT_METHODS = [
   { id: "cash",        label: "Cash on Pickup",  desc: "Pay when you collect your order",  Icon: Banknote },
@@ -15,6 +14,8 @@ const PAYMENT_METHODS = [
 ];
 
 export default function CheckoutPage() {
+  const { user } = useAuth();
+  const studentId = user?._id;
   const [cart, setCart]               = useState(null);
   const [loading, setLoading]         = useState(true);
   const [paymentMethod, setPaymentMethod] = useState("cash");
@@ -25,11 +26,12 @@ export default function CheckoutPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    cartAPI.getCart(TEMP_STUDENT_ID).then((res) => {
+    if (!studentId) return;
+    cartAPI.getCart(studentId).then((res) => {
       if (res.success) setCart(res.data);
       setLoading(false);
     });
-  }, []);
+  }, [studentId]);
 
   const items    = cart?.items || [];
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
@@ -42,7 +44,7 @@ export default function CheckoutPage() {
     try {
       // Step 1 — Place order
       const orderRes = await orderAPI.placeOrder({
-        studentId:     TEMP_STUDENT_ID,
+        studentId:     studentId,
         canteenId:     cart.canteen?._id || cart.canteen,
         items:         items.map((i) => ({
           meal:     i.meal?._id || i.meal,
@@ -65,7 +67,7 @@ export default function CheckoutPage() {
 
       // Step 2 — Process payment
       const payRes = await paymentAPI.processPayment({
-        studentId:     TEMP_STUDENT_ID,
+        studentId:     studentId,
         orderId:       newOrderId,
         amount:        subtotal,
         paymentMethod,
@@ -215,7 +217,7 @@ export default function CheckoutPage() {
                   {item.name} <span className="text-gray-400">× {item.quantity}</span>
                 </span>
                 <span className="font-medium text-gray-800 dark:text-gray-200">
-                  RS {(item.price * item.quantity).toFixed(2)}
+                  Rs.{(item.price * item.quantity).toFixed(2)}
                 </span>
               </div>
             ))}
@@ -223,7 +225,7 @@ export default function CheckoutPage() {
           <div className="border-t border-gray-100 dark:border-gray-700 pt-3 space-y-1.5">
             <div className="flex justify-between text-sm text-gray-500">
               <span>Subtotal</span>
-              <span>RS {subtotal.toFixed(2)}</span>
+              <span>Rs.{subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-sm text-gray-500">
               <span>Service Fee</span>
@@ -231,7 +233,7 @@ export default function CheckoutPage() {
             </div>
             <div className="flex justify-between font-bold text-base text-gray-900 dark:text-white pt-1">
               <span>Total</span>
-              <span className="text-gradient">RS {subtotal.toFixed(2)}</span>
+              <span className="text-gradient">Rs.{subtotal.toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -292,7 +294,7 @@ export default function CheckoutPage() {
           {processing ? (
             <><Loader2 size={18} className="animate-spin" /> Processing...</>
           ) : (
-            <><Check size={18} /> Place Order · RS {subtotal.toFixed(2)}</>
+            <><Check size={18} /> Place Order · Rs.{subtotal.toFixed(2)}</>
           )}
         </button>
 

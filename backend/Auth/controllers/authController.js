@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Canteen = require('../../models/Canteen');
 const sendEmail = require('../../utils/sendEmail');
 
 // Generate JWT token
@@ -62,6 +63,17 @@ const register = async (req, res) => {
         }
 
         const user = await User.create(userData);
+
+        // Auto-create Canteen document when a canteen owner registers
+        if (role === 'canteen') {
+            await Canteen.create({
+                owner: user._id,
+                name: canteenName,
+                location: location || '',
+                licenseNumber: licenseNumber || '',
+            });
+        }
+
         const token = generateToken(user._id);
 
         res.status(201).json({
@@ -250,6 +262,12 @@ const changePassword = async (req, res) => {
         }
 
         const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+        }
         const isMatch = await user.comparePassword(currentPassword);
 
         if (!isMatch) {
@@ -346,7 +364,7 @@ const resetPassword = async (req, res) => {
             });
         }
 
-        if (req.body.password.length < 6) {
+        if (!req.body.password || req.body.password.length < 6) {
             return res.status(400).json({
                 success: false,
                 message: 'New password must be at least 6 characters',

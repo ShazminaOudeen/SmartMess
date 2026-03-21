@@ -2,6 +2,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import StudentSidebar from "../components/StudentSidebar";
 import NotificationBell from "../components/NotificationBell";
 import { useTheme } from "../context/ThemeContext";
+import { useAuth } from "../context/AuthContext";
 
 const PAGE_TITLES = {
   "/student/canteens": "Canteens",
@@ -17,7 +18,10 @@ export default function StudentLayout() {
   const location = useLocation();
   const navigate  = useNavigate();
   const { theme } = useTheme();
+  const { user } = useAuth();
   const dark = theme === "dark";
+  const userName = user?.name || "Student";
+  const userInitials = userName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 
   const title = Object.entries(PAGE_TITLES).find(([path]) =>
     location.pathname.startsWith(path)
@@ -56,10 +60,10 @@ export default function StudentLayout() {
                 className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0"
                 style={{ background: "linear-gradient(135deg, #16a34a, #4ade80)" }}
               >
-                TS
+                {userInitials}
               </div>
               <div className="hidden sm:block">
-                <p className={`text-xs font-semibold leading-none ${dark ? "text-white" : "text-gray-900"}`}>Test Student</p>
+                <p className={`text-xs font-semibold leading-none ${dark ? "text-white" : "text-gray-900"}`}>{userName}</p>
                 <p className={`text-[10px] mt-0.5 ${dark ? "text-gray-500" : "text-gray-400"}`}>Student</p>
               </div>
             </div>
