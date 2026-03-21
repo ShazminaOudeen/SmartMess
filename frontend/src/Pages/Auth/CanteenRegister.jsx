@@ -74,8 +74,8 @@ export default function CanteenRegister() {
                 licenseNumber: formData.licenseNumber,
             });
             if (result.success) {
-                toast.success('Registration successful! Redirecting to your dashboard...');
-                setTimeout(() => navigate('/dashboard/canteen'), 1500);
+                toast.success('Registration successful! Please login.');
+                setTimeout(() => navigate('/login/canteen'), 1500);
             }
         } catch (error) {
             const msg = error.response?.data?.message || 'Registration failed. Please try again.';
@@ -180,7 +180,6 @@ export default function CanteenRegister() {
                                     placeholder="Minimum 6 characters"
                                     className="input-field pl-10 pr-10"
                                     required
-                                    minLength={6}
                                 />
                                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                                     {showPassword ? <MdVisibilityOff className="w-5 h-5" /> : <MdVisibility className="w-5 h-5" />}
@@ -203,7 +202,6 @@ export default function CanteenRegister() {
                                     placeholder="Confirm your password"
                                     className="input-field pl-10 pr-10"
                                     required
-                                    minLength={6}
                                 />
                                 <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                                     {showConfirm ? <MdVisibilityOff className="w-5 h-5" /> : <MdVisibility className="w-5 h-5" />}
