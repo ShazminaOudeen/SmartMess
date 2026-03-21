@@ -1,7 +1,5 @@
-const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const sendEmail = require('../../utils/sendEmail');
 
 // Generate JWT token
 const generateToken = (id) => {
@@ -110,20 +108,12 @@ const login = async (req, res) => {
             });
         }
 
-        // Find user by email
-        const user = await User.findOne({ email });
+        // Find user by email AND role
+        const user = await User.findOne({ email, role });
         if (!user) {
             return res.status(401).json({
                 success: false,
-                message: 'Invalid email or password',
-            });
-        }
-
-        // Check if role matches the login portal used
-        if (user.role !== role) {
-            return res.status(401).json({
-                success: false,
-                message: `This email is registered as a ${user.role}. Please use the correct login portal.`,
+                message: 'Invalid email or password for this role',
             });
         }
 
@@ -272,113 +262,10 @@ const changePassword = async (req, res) => {
     }
 };
 
-/**
- * @desc    Forgot password
- * @route   POST /api/auth/forgot-password
- * @access  Public
- */
-const forgotPassword = async (req, res) => {
-    try {
-        const user = await User.findOne({ email: req.body.email });
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: 'There is no user with that email',
-            });
-        }
-
-        // Get reset token
-        const resetToken = user.getResetPasswordToken();
-
-        await user.save({ validateBeforeSave: false });
-
-        // Create reset URL
-        const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
-
-        const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please make a PUT request to: \n\n ${resetUrl}`;
-
-        try {
-            await sendEmail({
-                email: user.email,
-                subject: 'Password reset token',
-                message,
-            });
-
-            res.status(200).json({ success: true, message: 'Email sent' });
-        } catch (err) {
-            console.error(err);
-            user.resetPasswordToken = undefined;
-            user.resetPasswordExpire = undefined;
-
-            await user.save({ validateBeforeSave: false });
-
-            return res.status(500).json({ success: false, message: 'Email could not be sent' });
-        }
-    } catch (error) {
-        console.error('Forgot password error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-};
-
-/**
- * @desc    Reset password
- * @route   PUT /api/auth/reset-password/:resettoken
- * @access  Public
- */
-const resetPassword = async (req, res) => {
-    try {
-        // Get hashed token
-        const resetPasswordToken = crypto
-            .createHash('sha256')
-            .update(req.params.resettoken)
-            .digest('hex');
-
-        const user = await User.findOne({
-            resetPasswordToken,
-            resetPasswordExpire: { $gt: Date.now() },
-        });
-
-        if (!user) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid or expired token',
-            });
-        }
-
-        if (req.body.password.length < 6) {
-            return res.status(400).json({
-                success: false,
-                message: 'New password must be at least 6 characters',
-            });
-        }
-
-        // Set new password
-        user.password = req.body.password;
-        user.resetPasswordToken = undefined;
-        user.resetPasswordExpire = undefined;
-        await user.save();
-
-        const token = generateToken(user._id);
-
-        res.status(200).json({
-            success: true,
-            message: 'Password reset successful',
-            token,
-            user,
-        });
-    } catch (error) {
-        console.error('Reset password error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-};
-
 module.exports = {
     register,
     login,
     getProfile,
     updateProfile,
     changePassword,
-    forgotPassword,
-    resetPassword,
 };
