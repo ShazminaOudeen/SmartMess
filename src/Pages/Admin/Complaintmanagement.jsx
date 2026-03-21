@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import AdminHeader from './components/AdminHeader';
+import authFetch from '../../api/authFetch';
 import {
   MessageSquare, Clock, CheckCircle, XCircle, Search,
   Filter, RefreshCw, Eye, Mail, ChevronDown,
@@ -273,7 +274,7 @@ const ComplaintManagement = () => {
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      const r = await fetch('/api/admin/complaints/stats');
+      const r = await authFetch('/api/admin/complaints/stats');
       const j = await r.json();
       if (j.success) setStats(j.data);
     } catch {}
@@ -283,7 +284,7 @@ const ComplaintManagement = () => {
   const fetchComplaints = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch('/api/admin/complaints');
+      const r = await authFetch('/api/admin/complaints');
       const j = await r.json();
       if (j.success) { setAllComplaints(j.data); setComplaints(j.data); }
     } catch {}
@@ -313,10 +314,9 @@ const ComplaintManagement = () => {
   const handleStatusChange = async (id, newStatus) => {
     setStatusLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const r = await fetch(`/api/admin/complaints/${id}/status`, {
+      const r = await authFetch(`/api/admin/complaints/${id}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
       const j = await r.json();
@@ -332,10 +332,9 @@ const ComplaintManagement = () => {
   const handleSendEmail = async ({ complaintId, to, subject, body }) => {
     setEmailSending(true);
     try {
-      const token = localStorage.getItem('token');
-      const r = await fetch('/api/admin/complaints/send-email', {
+      const r = await authFetch('/api/admin/complaints/send-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ complaintId, to, subject, body }),
       });
       const j = await r.json();

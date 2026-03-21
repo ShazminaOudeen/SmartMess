@@ -22,7 +22,7 @@ export default function CanteenProfile() {
   };
 
   const buildImgUrl = (path) =>
-    path ? (path.startsWith('blob:') ? path : `http://localhost:5000${path}`) : null;
+    path ? (path.startsWith('blob:') ? path : path) : null;
 
   // Fetch profile
   useEffect(() => {

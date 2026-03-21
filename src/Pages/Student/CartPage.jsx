@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ShoppingCart, ArrowLeft, Minus, Plus, Trash2, Store, ChevronRight } from "lucide-react";
 import { cartAPI } from "../../api/studentApi";
-
-const TEMP_STUDENT_ID = "64f1a2b3c4d5e6f7a8b9c0d1";
+import { useAuth } from "../../context/AuthContext";
 
 function CartSkeleton() {
   return (
@@ -24,16 +23,18 @@ function CartSkeleton() {
 }
 
 export default function CartPage() {
+  const { user } = useAuth();
+  const studentId = user?._id;
   const [cart, setCart]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState("");
   const navigate = useNavigate();
 
-  useEffect(() => { fetchCart(); }, []);
+  useEffect(() => { if (studentId) fetchCart(); }, [studentId]);
 
   const fetchCart = async () => {
     setLoading(true);
-    const res = await cartAPI.getCart(TEMP_STUDENT_ID);
+    const res = await cartAPI.getCart(studentId);
     if (res.success) setCart(res.data);
     setLoading(false);
   };
@@ -42,7 +43,7 @@ export default function CartPage() {
   const handleIncrease = async (item) => {
     setUpdating(item.meal._id || item.meal);
     const res = await cartAPI.updateItem({
-      studentId: TEMP_STUDENT_ID,
+      studentId: studentId,
       mealId: item.meal._id || item.meal,
       quantity: item.quantity + 1,
     });
@@ -58,14 +59,14 @@ export default function CartPage() {
     if (item.quantity <= 1) {
       // Remove item if quantity would go to 0
       const res = await cartAPI.removeItem({
-        studentId: TEMP_STUDENT_ID,
+        studentId: studentId,
         mealId,
       });
       if (res.success) setCart(res.data);
       else await fetchCart();
     } else {
       const res = await cartAPI.updateItem({
-        studentId: TEMP_STUDENT_ID,
+        studentId: studentId,
         mealId,
         quantity: item.quantity - 1,
       });
@@ -80,7 +81,7 @@ export default function CartPage() {
     const mealId = item.meal._id || item.meal;
     setUpdating(mealId);
     const res = await cartAPI.removeItem({
-      studentId: TEMP_STUDENT_ID,
+      studentId: studentId,
       mealId,
     });
     if (res.success) setCart(res.data);
@@ -89,7 +90,7 @@ export default function CartPage() {
   };
 
   const handleClear = async () => {
-    await cartAPI.clearCart(TEMP_STUDENT_ID);
+    await cartAPI.clearCart(studentId);
     await fetchCart();
   };
 
@@ -164,7 +165,7 @@ export default function CartPage() {
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{item.name}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        RS {item.price?.toFixed(2)} each
+                        Rs.{item.price?.toFixed(2)} each
                       </p>
                     </div>
 
@@ -193,7 +194,7 @@ export default function CartPage() {
                     {/* Subtotal */}
                     <div className="text-right flex-shrink-0 min-w-[60px]">
                       <p className="font-bold text-gray-900 dark:text-white text-sm">
-                        RS {(item.price * item.quantity).toFixed(2)}
+                        Rs.{(item.price * item.quantity).toFixed(2)}
                       </p>
                     </div>
 
@@ -216,7 +217,7 @@ export default function CartPage() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between text-gray-600 dark:text-gray-400">
                   <span>Subtotal ({items.length} item{items.length !== 1 ? "s" : ""})</span>
-                  <span>RS {subtotal.toFixed(2)}</span>
+                  <span>Rs.{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600 dark:text-gray-400">
                   <span>Service Fee</span>
@@ -224,7 +225,7 @@ export default function CartPage() {
                 </div>
                 <div className="border-t border-gray-100 dark:border-gray-700 pt-2 flex justify-between font-bold text-gray-900 dark:text-white text-base">
                   <span>Total</span>
-                  <span className="text-gradient">RS {subtotal.toFixed(2)}</span>
+                  <span className="text-gradient">Rs.{subtotal.toFixed(2)}</span>
                 </div>
               </div>
             </div>

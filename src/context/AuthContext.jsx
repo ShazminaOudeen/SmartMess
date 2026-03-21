@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const AuthContext = createContext();
 
-const API_URL = 'http://localhost:5000/api/auth';
+const API_URL = '/api/auth';
 
 export const useAuth = () => {
     const context = useContext(AuthContext);
@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }) => {
         return instance;
     }, [token]);
 
-    // Load user from token on mount
+    // Load user from token on mount and when token changes
     useEffect(() => {
         const loadUser = async () => {
             if (token) {
@@ -40,6 +40,7 @@ export const AuthProvider = ({ children }) => {
                     const res = await api().get('/profile');
                     if (res.data.success) {
                         setUser(res.data.user);
+                        localStorage.setItem('user', JSON.stringify(res.data.user));
                     } else {
                         logout();
                     }
@@ -50,7 +51,7 @@ export const AuthProvider = ({ children }) => {
             setLoading(false);
         };
         loadUser();
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [token, api]);
 
     const login = async (email, password, role) => {
         const res = await api().post('/login', { email, password, role });
@@ -58,6 +59,7 @@ export const AuthProvider = ({ children }) => {
             setToken(res.data.token);
             setUser(res.data.user);
             localStorage.setItem('token', res.data.token);
+            localStorage.setItem('user', JSON.stringify(res.data.user));
         }
         return res.data;
     };
@@ -68,6 +70,7 @@ export const AuthProvider = ({ children }) => {
             setToken(res.data.token);
             setUser(res.data.user);
             localStorage.setItem('token', res.data.token);
+            localStorage.setItem('user', JSON.stringify(res.data.user));
         }
         return res.data;
     };
@@ -76,12 +79,14 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         setToken(null);
         localStorage.removeItem('token');
+        localStorage.removeItem('user');
     };
 
     const updateProfile = async (profileData) => {
         const res = await api().put('/profile', profileData);
         if (res.data.success) {
             setUser(res.data.user);
+            localStorage.setItem('user', JSON.stringify(res.data.user));
         }
         return res.data;
     };

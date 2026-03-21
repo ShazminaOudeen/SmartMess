@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import {
   ShoppingBag, Clock, UtensilsCrossed, DollarSign,
   CheckCircle, XCircle, ChefHat, Package, Star,
@@ -22,13 +23,12 @@ export default function CanteenDashboard() {
   const [loading, setLoading] = useState(true);
   const navigate              = useNavigate();
 
-  const user    = JSON.parse(localStorage.getItem('user') || '{}');
-  const canteen = user.canteenName || user.name || 'My Canteen';
+  const { user, token } = useAuth();
+  const canteen = user?.canteenName || user?.name || 'My Canteen';
 
   const fetchDashboard = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
       const r = await fetch(API, { headers: { Authorization: `Bearer ${token}` } });
       const j = await r.json();
       if (j.success) setData(j.data);

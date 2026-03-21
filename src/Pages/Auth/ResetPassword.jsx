@@ -30,7 +30,7 @@ export default function ResetPassword() {
 
         setIsLoading(true);
         try {
-            const res = await axios.put(`http://localhost:5000/api/auth/reset-password/${token}`, { password });
+            const res = await axios.put(`/api/auth/reset-password/${token}`, { password });
             toast.success(res.data.message || 'Password reset successfully!');
             setTimeout(() => navigate('/login'), 2000);
         } catch (error) {
