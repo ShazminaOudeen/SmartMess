@@ -1,9 +1,9 @@
 import { Routes, Route } from "react-router-dom";
 import AdminSidebar from "./components/AdminSidebar";
 import AdminDashboard from "./AdminDashboard";
-import AdminProfile from "./AdminProfile";
+import AdminProfile from "./Adminprofile";
 import AdminHeader from "./components/AdminHeader";
-import CanteenApprovals from './CanteenApprovals';
+import CanteenApprovals from './Canteenapprovals';
 import CanteenVisibility from './Canteenvisibility';
 import UserManagement from './Usermanagement';
 import Analytics from './Analytics';

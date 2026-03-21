@@ -6,6 +6,7 @@ import {
   Sun, Moon
 } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
+import { useAuth } from "../context/AuthContext";
 
 const NAV_ITEMS = [
   { icon: Store,         label: "Canteens",  path: "/student/canteens" },
@@ -20,7 +21,17 @@ export default function StudentSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
   const dark = theme === "dark";
+
+  const userName = user?.name || "Student";
+  const userEmail = user?.email || "";
+  const userInitials = userName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
 
   return (
     <aside
@@ -73,18 +84,18 @@ export default function StudentSidebar() {
           <div className={`flex items-center gap-3 px-2 py-2.5 rounded-xl ${dark ? "bg-white/5" : "bg-gray-50"}`}>
             <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
               style={{ background: "linear-gradient(135deg, #16a34a, #4ade80)" }}>
-              TS
+              {userInitials}
             </div>
             <div className="min-w-0">
-              <p className={`text-xs font-semibold truncate ${dark ? "text-white" : "text-gray-900"}`}>Test Student</p>
-              <p className={`text-[10px] truncate ${dark ? "text-gray-500" : "text-gray-400"}`}>student@test.com</p>
+              <p className={`text-xs font-semibold truncate ${dark ? "text-white" : "text-gray-900"}`}>{userName}</p>
+              <p className={`text-[10px] truncate ${dark ? "text-gray-500" : "text-gray-400"}`}>{userEmail}</p>
             </div>
           </div>
         ) : (
           <div className="flex justify-center">
             <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
               style={{ background: "linear-gradient(135deg, #16a34a, #4ade80)" }}>
-              TS
+              {userInitials}
             </div>
           </div>
         )}
@@ -155,7 +166,7 @@ export default function StudentSidebar() {
           {!collapsed && <span className="text-sm font-medium">Home</span>}
         </button>
 
-        <button title={collapsed ? "Logout" : ""}
+        <button onClick={handleLogout} title={collapsed ? "Logout" : ""}
           className={`w-full flex items-center gap-3 rounded-xl transition-all duration-200
             ${collapsed ? "px-0 py-3 justify-center" : "px-3 py-2.5"}
             ${dark ? "text-gray-600 hover:bg-red-500/10 hover:text-red-400" : "text-gray-400 hover:bg-red-500/10 hover:text-red-600"}`}>
