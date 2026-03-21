@@ -80,7 +80,13 @@ export default function LoginPage() {
             const result = await login(formData.email, formData.password, mappedRole);
             if (result.success) {
                 toast.success('Login successful!');
-                setTimeout(() => navigate('/'), 800);
+                const dashboardRoutes = {
+                    student: '/dashboard/student',
+                    canteen: '/dashboard/canteen',
+                    admin: '/dashboard/admin',
+                };
+                const route = dashboardRoutes[mappedRole] || '/';
+                setTimeout(() => navigate(route), 800);
             }
         } catch (error) {
             const msg = error.response?.data?.message || 'Login failed. Please try again.';
@@ -165,9 +171,18 @@ export default function LoginPage() {
 
                         {/* Password */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                Password
-                            </label>
+                            <div className="flex justify-between items-center mb-2">
+                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                    Password
+                                </label>
+                                <Link 
+                                    to="/forgot-password" 
+                                    className="text-xs font-semibold hover:underline"
+                                    style={{ color: config.borderColor }}
+                                >
+                                    Forgot password?
+                                </Link>
+                            </div>
                             <div className="relative">
                                 <MdLock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                                 <input
@@ -178,6 +193,7 @@ export default function LoginPage() {
                                     placeholder="Enter your password"
                                     className="input-field pl-10 pr-10"
                                     required
+                                    minLength={6}
                                 />
                                 <button
                                     type="button"

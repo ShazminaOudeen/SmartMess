@@ -1,0 +1,61 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - link "← Back to Login" [ref=e6] [cursor=pointer]:
+      - /url: /login/user
+    - generic [ref=e7]:
+      - img [ref=e8]
+      - generic [ref=e11]:
+        - img [ref=e13]
+        - heading "Student Registration" [level=1] [ref=e16]
+        - paragraph [ref=e17]: Create your SmartMess student account
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - generic [ref=e20]: Full Name *
+          - generic [ref=e21]:
+            - img [ref=e23]
+            - textbox "Enter your full name" [ref=e26]: Duplicate User
+        - generic [ref=e27]:
+          - generic [ref=e28]: Email Address *
+          - generic [ref=e29]:
+            - img [ref=e31]
+            - textbox "Enter your email" [ref=e34]: student_test_1772701454122@test.com
+        - generic [ref=e35]:
+          - generic [ref=e36]: Password *
+          - generic [ref=e37]:
+            - img [ref=e38]
+            - textbox "Minimum 6 characters" [ref=e41]: password123
+            - button [ref=e42] [cursor=pointer]:
+              - img [ref=e43]
+        - generic [ref=e46]:
+          - generic [ref=e47]: Confirm Password *
+          - generic [ref=e48]:
+            - img [ref=e49]
+            - textbox "Confirm your password" [ref=e52]: password123
+            - button [ref=e53] [cursor=pointer]:
+              - img [ref=e54]
+        - generic [ref=e58]:
+          - generic [ref=e59]: Phone Number
+          - generic [ref=e60]:
+            - img [ref=e62]
+            - textbox "+94 77 XXX XXXX" [ref=e65]
+        - generic [ref=e66]:
+          - generic [ref=e67]: University
+          - generic [ref=e68]:
+            - img [ref=e70]
+            - textbox "e.g. SLIIT, UOM" [ref=e73]
+        - generic [ref=e74]:
+          - generic [ref=e75]: Student ID
+          - generic [ref=e76]:
+            - img [ref=e78]
+            - textbox "e.g. IT12345678" [ref=e81]
+        - button "Creating Account..." [disabled] [ref=e82]: Creating Account...
+      - paragraph [ref=e85]:
+        - text: Already have an account?
+        - link "Sign in here" [ref=e86] [cursor=pointer]:
+          - /url: /login/user
+    - paragraph [ref=e87]: SmartMess © 2026 — Smart Canteen Management System
+  - region "Notifications Alt+T"
+```

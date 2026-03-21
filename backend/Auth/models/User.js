@@ -30,6 +30,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: '',
+      match: [/^[0-9+\-\s()]{7,15}$/, 'Please enter a valid phone number'],
     },
     // Student-specific fields
     university: {
@@ -62,6 +63,8 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    resetPasswordToken: String,
+    resetPasswordExpire: Date,
   },
   { timestamps: true }
 );
@@ -83,6 +86,25 @@ userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
   return obj;
+};
+
+// Generate and hash password token
+userSchema.methods.getResetPasswordToken = function () {
+  const crypto = require('crypto');
+  
+  // Generate token
+  const resetToken = crypto.randomBytes(20).toString('hex');
+
+  // Hash token and set to resetPasswordToken field
+  this.resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
+  // Set expire to 10 minutes from now
+  this.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+
+  return resetToken;
 };
 
 module.exports = mongoose.model('User', userSchema);

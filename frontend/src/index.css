@@ -2,207 +2,320 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
-
 @layer base {
   body {
     @apply antialiased;
-    font-family: 'DM Sans', sans-serif;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply relative overflow-hidden px-5 py-2.5 rounded-xl font-semibold text-sm text-white
-           transition-all duration-300 active:scale-95
-           disabled:opacity-50 disabled:cursor-not-allowed;
-    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-    box-shadow: 0 4px 15px rgba(22, 163, 74, 0.35);
+    @apply bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors duration-200 dark:bg-primary-500 dark:hover:bg-primary-600;
   }
-  .btn-primary:hover:not(:disabled) {
-    box-shadow: 0 6px 20px rgba(22, 163, 74, 0.5);
-    transform: translateY(-1px);
-  }
-  .btn-primary::after {
-    content: '';
-    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
-    background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 100%);
-  }
-  .btn-primary:hover::after { @apply opacity-100; }
-
+  
   .btn-secondary {
-    @apply px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200
-           bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm
-           text-gray-700 dark:text-gray-300
-           border border-gray-200 dark:border-gray-700
-           hover:border-green-400 hover:text-green-600
-           dark:hover:border-green-500 dark:hover:text-green-400
-           active:scale-95;
-  }
-
-  .btn-danger {
-    @apply px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-200
-           bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400
-           border border-red-200 dark:border-red-800
-           hover:bg-red-100 dark:hover:bg-red-900/40 active:scale-95;
+    @apply bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors duration-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600;
   }
 
   .card {
-    @apply bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm
-           rounded-2xl border border-gray-100 dark:border-gray-700/50
-           shadow-sm p-6 transition-all duration-300;
-  }
-
-  .card-hover {
-    @apply card cursor-pointer hover:shadow-lg hover:-translate-y-1
-           hover:border-green-200 dark:hover:border-green-800/50;
-  }
-
-  .glass-card {
-    @apply backdrop-blur-xl rounded-2xl border p-6 transition-all duration-300;
-    background: rgba(255, 255, 255, 0.85);
-    border-color: rgba(255, 255, 255, 0.6);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
-  }
-  .dark .glass-card {
-    background: rgba(17, 24, 39, 0.85);
-    border-color: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-colors duration-200;
   }
 
   .input-field {
-    @apply w-full px-4 py-2.5 rounded-xl text-sm font-medium
-           border border-gray-200 dark:border-gray-600
-           bg-white dark:bg-gray-800
-           text-gray-800 dark:text-white
-           placeholder-gray-400 dark:placeholder-gray-500
-           focus:outline-none focus:ring-2 focus:ring-green-400/50 focus:border-green-400
-           dark:focus:ring-green-500/40 dark:focus:border-green-500
-           transition-all duration-200;
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-primary-400;
   }
 
-  .badge {
-    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold;
+  .animate-spin-slow {
+    animation: spin-slow 20s linear infinite;
   }
 
-  .badge-green  { @apply badge bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400; }
-  .badge-yellow { @apply badge bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400; }
-  .badge-blue   { @apply badge bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400; }
-  .badge-orange { @apply badge bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400; }
-  .badge-red    { @apply badge bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400; }
-  .badge-gray   { @apply badge bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400; }
-
-  /* Skeleton loader */
-  .skeleton {
-    @apply rounded-xl bg-gray-200 dark:bg-gray-700 overflow-hidden relative;
-  }
-  .skeleton::after {
-    content: '';
-    @apply absolute inset-0;
-    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
-    animation: shimmer 1.5s infinite;
-  }
-  .dark .skeleton::after {
-    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%);
-  }
-
-  .page-header {
-    @apply mb-8 pb-6 border-b border-gray-100 dark:border-gray-800;
-  }
-
-  .section-title {
-    @apply text-2xl font-bold text-gray-900 dark:text-white tracking-tight;
-  }
-
-  .section-subtitle {
-    @apply text-sm text-gray-500 dark:text-gray-400 mt-1;
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 }
 
 @layer utilities {
+  /* Fade animations */
   .animate-fade-up {
-    animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: fadeUp 0.7s ease forwards;
     opacity: 0;
   }
+  
   .animate-fade-down {
-    animation: fadeDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: fadeDown 0.7s ease forwards;
     opacity: 0;
   }
+  
   .animate-fade-in {
-    animation: fadeIn 0.4s ease forwards;
+    animation: fadeIn 0.5s ease forwards;
     opacity: 0;
   }
+  
+  /* Slide animations */
   .animate-slide-left {
-    animation: slideLeft 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: slideLeft 0.5s ease forwards;
   }
+  
   .animate-slide-right {
-    animation: slideRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: slideRight 0.5s ease forwards;
   }
-  .animate-scale-up {
-    animation: scaleUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-  .animate-spin-slow { animation: spinSlow 1.2s linear infinite; }
-
-  .animation-delay-50  { animation-delay: 0.05s; }
+  
+  /* Delay utilities */
   .animation-delay-100 { animation-delay: 0.1s; }
-  .animation-delay-150 { animation-delay: 0.15s; }
   .animation-delay-200 { animation-delay: 0.2s; }
   .animation-delay-300 { animation-delay: 0.3s; }
   .animation-delay-400 { animation-delay: 0.4s; }
   .animation-delay-500 { animation-delay: 0.5s; }
-
-  .text-gradient {
-    background: linear-gradient(135deg, #16a34a, #4ade80);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  .animation-delay-600 { animation-delay: 0.6s; }
+  .animation-delay-700 { animation-delay: 0.7s; }
+  .animation-delay-800 { animation-delay: 0.8s; }
+  .animation-delay-900 { animation-delay: 0.9s; }
+  .animation-delay-1000 { animation-delay: 1s; }
+  
+  /* Duration utilities */
+  .animation-duration-300 { animation-duration: 0.3s; }
+  .animation-duration-500 { animation-duration: 0.5s; }
+  .animation-duration-700 { animation-duration: 0.7s; }
+  .animation-duration-1000 { animation-duration: 1s; }
+  .animation-duration-2000 { animation-duration: 2s; }
+  .animation-duration-3000 { animation-duration: 3s; }
+  
+  /* Bounce animations */
+  .animate-bounce-slow {
+    animation: bounce 2s infinite;
   }
-
-  .bg-mesh {
-    background-color: #f8fffe;
-    background-image:
-      radial-gradient(at 40% 20%, hsla(138, 60%, 94%, 0.6) 0px, transparent 50%),
-      radial-gradient(at 80% 0%, hsla(142, 50%, 96%, 0.4) 0px, transparent 50%),
-      radial-gradient(at 0% 50%, hsla(130, 60%, 95%, 0.5) 0px, transparent 50%);
+  
+  .animate-bounce-medium {
+    animation: bounce 1.5s infinite;
   }
-  .dark .bg-mesh {
-    background-color: #0f1117;
-    background-image:
-      radial-gradient(at 40% 20%, hsla(138, 40%, 8%, 0.8) 0px, transparent 50%),
-      radial-gradient(at 80% 0%, hsla(142, 30%, 6%, 0.6) 0px, transparent 50%),
-      radial-gradient(at 0% 50%, hsla(130, 40%, 7%, 0.7) 0px, transparent 50%);
+  
+  .animate-bounce-fast {
+    animation: bounce 1s infinite;
   }
-
+  
+  /* Pulse animations */
+  .animate-pulse-slow {
+    animation: pulse 3s infinite;
+  }
+  
+  .animate-pulse-slower {
+    animation: pulse 4s infinite;
+  }
+  
+  .animate-pulse-fast {
+    animation: pulse 1.5s infinite;
+  }
+  
+  /* Ping animations */
+  .animate-ping-slow {
+    animation: ping 2s infinite;
+  }
+  
+  .animate-ping-slower {
+    animation: ping 3s infinite;
+  }
+  
+  .animate-ping-fast {
+    animation: ping 1s infinite;
+  }
+  
+  /* Float animations */
+  .animate-float {
+    animation: float 6s infinite ease-in-out;
+  }
+  
+  .animate-float-slow {
+    animation: float 8s infinite ease-in-out;
+  }
+  
+  .animate-float-delayed {
+    animation: float 7s infinite ease-in-out 2s;
+  }
+  
+  .animate-float-particle {
+    animation: float-particle 10s infinite ease-in-out;
+  }
+  
+  /* Scale animations */
+  .animate-scale-up {
+    animation: scaleUp 0.3s ease forwards;
+  }
+  
+  .animate-scale-down {
+    animation: scaleDown 0.3s ease forwards;
+  }
+  
+  /* Ken Burns effect */
+  .animate-ken-burns {
+    animation: kenBurns 20s ease infinite alternate;
+  }
+  
+  /* Zoom animation */
+  .animate-zoom {
+    animation: zoomBg 5s ease-in-out forwards;
+  }
+  
+  /* Spin animation */
+  .animate-spin-slow {
+    animation: spin-slow 20s linear infinite;
+  }
+  
+  /* Keyframes */
   @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
+  
   @keyframes fadeDown {
-    from { opacity: 0; transform: translateY(-20px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(-30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
+  
   @keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
+  
   @keyframes slideLeft {
-    from { opacity: 0; transform: translateX(24px); }
-    to   { opacity: 1; transform: translateX(0); }
+    from {
+      opacity: 0;
+      transform: translateX(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
   }
+  
   @keyframes slideRight {
-    from { opacity: 0; transform: translateX(-24px); }
-    to   { opacity: 1; transform: translateX(0); }
+    from {
+      opacity: 0;
+      transform: translateX(-30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
   }
+  
+  @keyframes bounce {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+  
+  @keyframes ping {
+    75%, 100% {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+  
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0) translateX(0);
+    }
+    25% {
+      transform: translateY(-10px) translateX(5px);
+    }
+    50% {
+      transform: translateY(0) translateX(10px);
+    }
+    75% {
+      transform: translateY(10px) translateX(5px);
+    }
+  }
+  
+  @keyframes float-particle {
+    0%, 100% {
+      transform: translate(0, 0) rotate(0deg);
+    }
+    25% {
+      transform: translate(15px, -15px) rotate(90deg);
+    }
+    50% {
+      transform: translate(30px, 0) rotate(180deg);
+    }
+    75% {
+      transform: translate(15px, 15px) rotate(270deg);
+    }
+  }
+  
   @keyframes scaleUp {
-    from { opacity: 0; transform: scale(0.92); }
-    to   { opacity: 1; transform: scale(1); }
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
-  @keyframes spinSlow {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
+  
+  @keyframes scaleDown {
+    from {
+      opacity: 1;
+      transform: scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: scale(0.9);
+    }
   }
-  @keyframes shimmer {
-    from { transform: translateX(-100%); }
-    to   { transform: translateX(100%); }
+  
+  @keyframes kenBurns {
+    0% {
+      transform: scale(1);
+    }
+    100% {
+      transform: scale(1.1);
+    }
+  }
+  
+  @keyframes zoomBg {
+    from {
+      transform: scale(1.08);
+    }
+    to {
+      transform: scale(1);
+    }
+  }
+  
+  @keyframes spin-slow {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 }
