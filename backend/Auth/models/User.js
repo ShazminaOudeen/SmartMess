@@ -31,6 +31,12 @@ const userSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    // Admin-specific fields
+    nic: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     // Student-specific fields
     university: {
       type: String,

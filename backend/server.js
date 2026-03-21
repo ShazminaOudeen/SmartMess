@@ -41,7 +41,7 @@ const Canteenroutes      = require('./Admin/routes/Canteenroutes');
 const userRoutes         = require('./Admin/routes/userRoutes');
 const analyticsRoutes    = require('./Admin/routes/analyticsRoutes');
 const complaintRoutes    = require('./Admin/routes/complaintRoutes');
-require('./Admin/models/User');
+require('./Auth/models/User')
 
 app.use('/api/admin/dashboard', dashboardRoutes);
 app.use('/api/admin', adminProfileRoutes);
