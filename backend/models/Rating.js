@@ -1,3 +1,5 @@
+//backend/Canteen/models/Rating.js
+
 const mongoose = require('mongoose');
 
 const ratingSchema = new mongoose.Schema({

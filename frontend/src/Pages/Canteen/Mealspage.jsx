@@ -1,3 +1,5 @@
+//frontend/src/pages/Canteen/MealsPage.jsx
+
 import { useState, useEffect, useRef } from 'react';
 import {
   Plus, Search, Filter, Edit2, Trash2, X, Save, Loader2,
