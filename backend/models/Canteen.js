@@ -1,3 +1,5 @@
+//backend/Canteen/models/Canteen.js
+
 const mongoose = require('mongoose');
 
 const operatingHourSchema = new mongoose.Schema({

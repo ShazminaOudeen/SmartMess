@@ -1,3 +1,5 @@
+//backend/Canteen/models/Meal.js
+
 const mongoose = require('mongoose');
 
 const sizeSchema = new mongoose.Schema({

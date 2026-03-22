@@ -1,4 +1,5 @@
-//canteenProfileRoutes.js
+//backend/Canteen/routes/canteenProfileRoutes.js
+
 const express = require('express');
  const {
   upload,
