@@ -4,8 +4,7 @@ import { BarChart2, ChevronLeft, ChevronRight, Wallet, ShoppingBag, TrendingUp, 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { trackingAPI } from "../../api/studentApi";
-
-const TEMP_STUDENT_ID = "64f1a2b3c4d5e6f7a8b9c0d1";
+import { useAuth } from "../../context/AuthContext";
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 function StatSkeleton() {
@@ -19,16 +18,18 @@ function StatSkeleton() {
 }
 
 export default function ExpenseDashboard() {
+  const { user } = useAuth();
+  const studentId = user?._id;
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [year, setYear] = useState(new Date().getFullYear());
   const navigate = useNavigate();
 
-  useEffect(() => { fetchExpenses(); }, [year]);
+  useEffect(() => { if (studentId) fetchExpenses(); }, [year, studentId]);
 
   const fetchExpenses = async () => {
     setLoading(true);
-    const res = await trackingAPI.getExpenses(TEMP_STUDENT_ID, year);
+    const res = await trackingAPI.getExpenses(studentId, year);
     if (res.success) setExpenses(res.data);
     setLoading(false);
   };

@@ -2,20 +2,20 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, SlidersHorizontal, Plus, Check, Store, X, Utensils, ChevronDown } from "lucide-react";
 import { canteenAPI, cartAPI } from "../../api/studentApi";
+import { useAuth } from "../../context/AuthContext";
 
 const CATEGORIES = ["All", "Breakfast", "Lunch", "Dinner", "Dessert", "Drinks", "Snacks", "Other"];
 
 const PRICE_OPTIONS = [
   { label: "Any Price",    value: "" },
-  { label: "Under RS 5",  value: "5" },
-  { label: "Under RS 10", value: "10" },
-  { label: "Under RS 15", value: "15" },
-  { label: "Under RS 20", value: "20" },
-  { label: "Under RS 30", value: "30" },
-  { label: "Under RS 50", value: "50" },
+  { label: "Under Rs.5",  value: "5" },
+  { label: "Under Rs.10", value: "10" },
+  { label: "Under Rs.15", value: "15" },
+  { label: "Under Rs.20", value: "20" },
+  { label: "Under Rs.30", value: "30" },
+  { label: "Under Rs.50", value: "50" },
 ];
 
-const TEMP_STUDENT_ID = "64f1a2b3c4d5e6f7a8b9c0d1";
 
 function MealSkeleton() {
   return (
@@ -32,6 +32,8 @@ function MealSkeleton() {
 }
 
 export default function GlobalSearchPage() {
+  const { user } = useAuth();
+  const studentId = user?._id;
   const [query, setQuery]         = useState("");
   const [category, setCategory]   = useState("All");
   const [maxPrice, setMaxPrice]   = useState("");
@@ -64,7 +66,7 @@ export default function GlobalSearchPage() {
 
   const handleAddToCart = async (meal) => {
     const res = await cartAPI.addToCart({
-      studentId: TEMP_STUDENT_ID,
+      studentId: studentId,
       mealId: meal._id,
       quantity: 1,
     });

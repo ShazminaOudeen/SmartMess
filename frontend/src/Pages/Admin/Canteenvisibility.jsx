@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import jsPDF from 'jspdf';
 import logoSrc from '../../assets/logo.png';
 import AdminHeader from './components/AdminHeader';
+import authFetch from '../../api/authFetch';
 import {
   Store, Eye, EyeOff, Star, ShoppingBag,
   AlertTriangle, RefreshCw, CheckCircle, XCircle,
@@ -165,13 +166,13 @@ const CanteenVisibility = () => {
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
-    try { const r = await fetch('/api/admin/canteens/visibility-stats'); const j = await r.json(); if (j.success) setStats(j.data); } catch {}
+    try { const r = await authFetch('/api/admin/canteens/visibility-stats'); const j = await r.json(); if (j.success) setStats(j.data); } catch {}
     finally { setStatsLoading(false); }
   }, []);
 
   const fetchCanteens = useCallback(async () => {
     setLoading(true);
-    try { const r = await fetch('/api/admin/canteens/approved-list'); const j = await r.json(); if (j.success) { setAllCanteens(j.data); setCanteens(j.data); } } catch {}
+    try { const r = await authFetch('/api/admin/canteens/approved-list'); const j = await r.json(); if (j.success) { setAllCanteens(j.data); setCanteens(j.data); } } catch {}
     finally { setLoading(false); }
   }, []);
 
@@ -195,12 +196,11 @@ const CanteenVisibility = () => {
  const handleToggle = async (id, current) => {
     setToggling(id);
     try {
-      const token = localStorage.getItem('token');
       const canteen = allCanteens.find(c => c._id?.toString() === id.toString());
         console.log('🔍 Toggling:', id, 'Found canteen:', canteen?.name);
-      const r = await fetch(`/api/admin/canteens/${id}/visibility`, {
+      const r = await authFetch(`/api/admin/canteens/${id}/visibility`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !current }),
       });
       const j = await r.json();
@@ -213,9 +213,9 @@ const CanteenVisibility = () => {
       ));
 
       // Log to system activity
-      await fetch('/api/admin/dashboard/activity', {
+      await authFetch('/api/admin/dashboard/activity', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: !current ? 'CANTEEN_VISIBLE' : 'CANTEEN_HIDDEN',
           description: `Canteen "${canteen?.name || id}" has been ${!current ? 'made visible to students' : 'hidden from students'}`,

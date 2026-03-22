@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Star, ArrowLeft, CheckCircle, AlertCircle, Utensils } from "lucide-react";
 import { trackingAPI } from "../../api/studentApi";
-
-const TEMP_STUDENT_ID = "64f1a2b3c4d5e6f7a8b9c0d1";
+import { useAuth } from "../../context/AuthContext";
 
 const QUICK_TAGS = [
   "Delicious", "Good Portion", "Fast Service", "Value for Money",
@@ -11,6 +10,8 @@ const QUICK_TAGS = [
 ];
 
 export default function RatingFeedbackForm() {
+  const { user } = useAuth();
+  const studentId = user?._id;
   const { orderId, canteenId } = useParams();
   const navigate = useNavigate();
   const [order, setOrder]       = useState(null);
@@ -41,7 +42,7 @@ export default function RatingFeedbackForm() {
     setSubmitting(true);
     setError("");
     const res = await trackingAPI.submitRating({
-      studentId: TEMP_STUDENT_ID,
+      studentId: studentId,
       orderId,
       canteenId,
       rating,
@@ -114,7 +115,7 @@ export default function RatingFeedbackForm() {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Rate Your Order</h1>
             {order && (
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Order #{orderId?.slice(-8).toUpperCase()} · RS {order.totalAmount?.toFixed(2)}
+                Order #{orderId?.slice(-8).toUpperCase()} · Rs.{order.totalAmount?.toFixed(2)}
               </p>
             )}
           </div>

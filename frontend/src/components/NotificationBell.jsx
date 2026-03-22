@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Bell, X, Clock, ChefHat, CheckCircle, Bell as BellIcon, Package } from "lucide-react";
 import { trackingAPI } from "../api/studentApi";
-
-const TEMP_STUDENT_ID = "64f1a2b3c4d5e6f7a8b9c0d1";
+import { useAuth } from "../context/AuthContext";
 
 const STATUS_CONFIG = {
   pending:   { color: "text-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-900/20", Icon: Clock,        msg: "Order received — waiting for canteen" },
@@ -14,6 +13,8 @@ const STATUS_CONFIG = {
 };
 
 export default function NotificationBell() {
+  const { user } = useAuth();
+  const studentId = user?._id;
   const [orders, setOrders] = useState([]);
   const [open, setOpen] = useState(false);
   const [unread, setUnread] = useState(0);
@@ -24,7 +25,8 @@ export default function NotificationBell() {
 
   // Fetch orders and detect status changes
   const fetchOrders = async () => {
-    const res = await trackingAPI.getHistory(TEMP_STUDENT_ID);
+    if (!studentId) return;
+    const res = await trackingAPI.getHistory(studentId);
     if (!res.success) return;
 
     const active = res.data.filter((o) =>
@@ -58,11 +60,11 @@ export default function NotificationBell() {
   };
 
   useEffect(() => {
+    if (!studentId) return;
     fetchOrders();
-    // Poll every 30 seconds
     pollRef.current = setInterval(fetchOrders, 30000);
     return () => clearInterval(pollRef.current);
-  }, []);
+  }, [studentId]);
 
   // Close on outside click
   useEffect(() => {
