@@ -1,3 +1,5 @@
+//frontend/src/pages/Canteen/RevenuePage.jsx
+
 import { useState, useEffect } from 'react';
 import {
   TrendingUp, DollarSign, ShoppingBag, Star,
