@@ -1,4 +1,5 @@
-//CanteenLayout.jsx
+//frontend/src/pages/Canteen/CanteenLayout.jsx
+
 import { Routes, Route } from "react-router-dom";
 import CanteenSidebar from "./components/CanteenSidebar";
 import CanteenProfile from './Canteenprofile';

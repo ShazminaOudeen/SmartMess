@@ -1,4 +1,5 @@
-//OperatingHours.jsx
+//frontend/src/pages/Canteen/OperatingHours.jsx
+
 import { useState, useEffect } from 'react';
 import { Clock, Save, CheckCircle, XCircle, Loader2, ToggleLeft, ToggleRight } from 'lucide-react';
 
