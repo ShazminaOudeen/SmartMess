@@ -51,7 +51,9 @@ app.use('/api/admin', analyticsRoutes);
 app.use('/api/admin', complaintRoutes);
 
 //Canteen module routes
+
 const canteenProfileRoutes = require('./Canteen/routes/canteenProfileRoutes');
+const reportRoutes = require('./Canteen/routes/reportRoutes');
 const mealRoutes = require('./Canteen/routes/mealRoutes');
 const canteenOrderRoutes = require('./Canteen/routes/orderRoutes');
 const revenueRoutes = require('./Canteen/routes/revenueRoutes');
@@ -59,11 +61,13 @@ const reviewRoutes = require('./Canteen/routes/reviewRoutes');
 const canteenDashboardRoutes = require('./Canteen/routes/dashboardRoutes');
 
 app.use('/api/canteen/dashboard', canteenDashboardRoutes);
+ app.use('/api/canteen/report', reportRoutes);
 app.use('/api/canteen/reviews', reviewRoutes);
 app.use('/api/canteen/revenue', revenueRoutes);
 app.use('/api/canteen/orders', canteenOrderRoutes); 
 app.use('/api/canteen/meals', mealRoutes);        
 app.use('/api/canteen', canteenProfileRoutes);
+
 
 
 // Student Module Routes
