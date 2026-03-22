@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../../context/AuthContext'; 
+import { authFetch } from '../../../utils/authFetch';
 import { useNavigate } from 'react-router-dom';
 import { RefreshCw, Shield, UserPlus, X, Eye, EyeOff, Check } from 'lucide-react';
 
@@ -114,13 +116,11 @@ const AdminHeader = ({ title = 'Dashboard', subtitle = '', onRefresh, refreshing
   const [, setTick] = useState(0);
 
   // Get logged-in admin from localStorage
-  const stored = (() => {
-    try { return JSON.parse(localStorage.getItem('user') || localStorage.getItem('admin') || '{}'); }
-    catch { return {}; }
-  })();
-  const adminName = stored?.name || stored?.username || 'Admin';
-  const adminPhoto = stored?.profilePicture || stored?.photo || null;
-  const initials = adminName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+ // ✅ Fixed — reads from AuthContext
+const { user } = useAuth();
+const adminName = user?.name || 'Admin';
+const adminPhoto = user?.profilePicture || user?.photo || null;
+const initials = adminName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 
   useEffect(() => {
     const id = setInterval(() => setTick(t => t + 1), 30000);
@@ -168,14 +168,10 @@ const AdminHeader = ({ title = 'Dashboard', subtitle = '', onRefresh, refreshing
     setServerError('');
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/admin/create-admin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ ...form, role: 'admin' }),
-      });
+      const res = await authFetch('/api/admin/create-admin', {
+    method: 'POST',
+    body: JSON.stringify({ ...form, role: 'admin' }),
+});
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Failed to add admin');
       setSuccess(true);

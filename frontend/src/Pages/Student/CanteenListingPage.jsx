@@ -32,7 +32,10 @@ export default function CanteenListingPage() {
 
   useEffect(() => {
     canteenAPI.getAll().then((res) => {
-      if (res.success) setCanteens(res.data);
+      if (res.success) {
+        
+        setCanteens(res.data);
+      }
       setLoading(false);
     });
   }, []);
@@ -47,12 +50,14 @@ export default function CanteenListingPage() {
   };
 
   const filtered = canteens.filter((c) => {
-    const matchSearch = c.name.toLowerCase().includes(search.toLowerCase());
+    if (!c) return false; // ✅ skip null/undefined
+    const name = c.canteenName || c.name || '';
+    const matchSearch = name.toLowerCase().includes(search.toLowerCase());
     const matchFav = favFilter ? favCanteens.includes(c._id) : true;
     return matchSearch && matchFav;
   });
 
-  const favList = canteens.filter((c) => favCanteens.includes(c._id));
+  const favList = canteens.filter((c) => c && favCanteens.includes(c._id));
 
   return (
     <div className="min-h-screen px-6 py-8">
@@ -85,10 +90,12 @@ export default function CanteenListingPage() {
                   className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 transition-all flex-shrink-0">
                   <div className="w-7 h-7 rounded-lg bg-white dark:bg-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0">
                     {c.image
-                      ? <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
+                      ? <img src={c.image} alt={c.canteenName || c.name} className="w-full h-full object-cover" />
                       : <UtensilsCrossed size={13} className="text-green-500" />}
                   </div>
-                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 whitespace-nowrap">{c.name}</span>
+                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 whitespace-nowrap">
+                    {c.canteenName || c.name}
+                  </span>
                   <ChevronRight size={12} className="text-amber-500" />
                 </button>
               ))}
@@ -174,11 +181,13 @@ export default function CanteenListingPage() {
                 {/* Image */}
                 <div className="w-full h-40 rounded-xl bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-700 dark:to-gray-600 mb-4 overflow-hidden flex items-center justify-center">
                   {canteen.image
-                    ? <img src={canteen.image} alt={canteen.name} className="w-full h-full object-cover" />
+                    ? <img src={canteen.image} alt={canteen.canteenName || canteen.name} className="w-full h-full object-cover" />
                     : <UtensilsCrossed size={40} className="text-green-300 dark:text-gray-500" />}
                 </div>
 
-                <h2 className="text-base font-bold text-gray-900 dark:text-white mb-1 pr-8">{canteen.name}</h2>
+                <h2 className="text-base font-bold text-gray-900 dark:text-white mb-1 pr-8">
+                  {canteen.canteenName || canteen.name}
+                </h2>
                 <p className="text-gray-500 dark:text-gray-400 text-sm mb-4 line-clamp-2 leading-relaxed">
                   {canteen.description || "Delicious meals available daily."}
                 </p>

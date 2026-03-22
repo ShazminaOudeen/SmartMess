@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import AdminHeader from './components/AdminHeader';
+import { authFetch } from '../../utils/authFetch';
 import {
   MessageSquare, Clock, CheckCircle, XCircle, Search,
   Filter, RefreshCw, Eye, Mail, ChevronDown,
@@ -122,7 +123,6 @@ const DetailModal = ({ complaint, onClose, onStatusChange, onEmail, statusLoadin
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl border border-gray-200 dark:border-gray-700 overflow-hidden max-h-[90vh] flex flex-col">
-
         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-start justify-between flex-shrink-0">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -162,22 +162,15 @@ const DetailModal = ({ complaint, onClose, onStatusChange, onEmail, statusLoadin
             <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{complaint.description || 'No description provided.'}</p>
           </div>
 
-          {/* ── Attachment — FIXED with full server URL ── */}
           {complaint.attachment && (
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-2">Attachment</p>
               <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-600">
-                <img
-                  src={imgUrl(complaint.attachment)}
-                  alt="Complaint attachment"
+                <img src={imgUrl(complaint.attachment)} alt="Complaint attachment"
                   className="w-full max-h-64 object-contain bg-gray-50 dark:bg-gray-700"
-                  onError={(e) => { e.target.style.display = 'none'; }}
-                />
+                  onError={(e) => { e.target.style.display = 'none'; }} />
               </div>
-              <a
-                href={imgUrl(complaint.attachment)}
-                target="_blank"
-                rel="noreferrer"
+              <a href={imgUrl(complaint.attachment)} target="_blank" rel="noreferrer"
                 className="inline-flex items-center gap-1.5 mt-2 text-xs text-blue-500 hover:text-blue-600 font-semibold">
                 <Paperclip className="w-3.5 h-3.5" /> View full image
               </a>
@@ -254,7 +247,8 @@ const ComplaintManagement = () => {
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      const r = await fetch('/api/admin/complaints/stats');
+      // ✅ authFetch
+      const r = await authFetch('/api/admin/complaints/stats');
       const j = await r.json();
       if (j.success) setStats(j.data);
     } catch {} finally { setStatsLoading(false); }
@@ -263,7 +257,8 @@ const ComplaintManagement = () => {
   const fetchComplaints = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch('/api/admin/complaints');
+      // ✅ authFetch
+      const r = await authFetch('/api/admin/complaints');
       const j = await r.json();
       if (j.success) { setAllComplaints(j.data); setComplaints(j.data); }
     } catch {} finally { setLoading(false); }
@@ -291,10 +286,9 @@ const ComplaintManagement = () => {
   const handleStatusChange = async (id, newStatus) => {
     setStatusLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const r = await fetch(`/api/admin/complaints/${id}/status`, {
+      // ✅ authFetch
+      const r = await authFetch(`/api/admin/complaints/${id}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ status: newStatus }),
       });
       const j = await r.json();
@@ -310,10 +304,9 @@ const ComplaintManagement = () => {
   const handleSendEmail = async ({ complaintId, to, subject, body }) => {
     setEmailSending(true);
     try {
-      const token = localStorage.getItem('token');
-      const r = await fetch('/api/admin/complaints/send-email', {
+      // ✅ authFetch
+      const r = await authFetch('/api/admin/complaints/send-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ complaintId, to, subject, body }),
       });
       const j = await r.json();

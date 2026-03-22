@@ -6,11 +6,12 @@ const {
     getProfile,
     updateProfile,
     changePassword,
+    uploadDoc,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
 // Public routes
-router.post('/register', register);
+router.post('/register', uploadDoc.single('document'), register);
 router.post('/login', login);
 
 // Protected routes
