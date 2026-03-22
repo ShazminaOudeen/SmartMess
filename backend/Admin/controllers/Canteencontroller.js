@@ -1,4 +1,6 @@
 const mongoose = require('mongoose');
+const User = require('../../Auth/models/User');
+const Canteen = require('../../models/Canteen');
 const { logActivity } = require('./dashboardController');
 
 const getCollection = (name) => mongoose.connection.db.collection(name);
@@ -9,7 +11,7 @@ const getCanteenStats = async (req, res) => {
     const [total, approved, pending] = await Promise.all([
       getCollection('canteens').countDocuments({}),
       getCollection('canteens').countDocuments({ isApproved: true }),
-      getCollection('canteens').countDocuments({ isApproved: { $ne: true }, isRejected: { $ne: true } }),
+      User.countDocuments({ role: 'canteen', status: 'pending' }), // ✅ from users
     ]);
     res.json({ success: true, data: { total, approved, pending } });
   } catch (err) {
@@ -36,25 +38,53 @@ const getCanteens = async (req, res) => {
   try {
     const { status = 'pending' } = req.query;
 
+    // ✅ pending and rejected come from users collection
+    if (status === 'pending' || status === 'rejected') {
+      const users = await User.find({ role: 'canteen', status })
+        .select('-password')
+        .sort({ createdAt: -1 });
+
+      const data = users.map(u => ({
+        _id: u._id,
+        name: u.canteenName,
+        ownerName: u.name,
+        ownerEmail: u.email,
+        phone: u.phone,
+        location: u.location,
+        licenseNumber: u.licenseNumber,
+        registrationDocument: u.registrationDocument,
+        status: u.status,
+        rejectionReason: u.rejectionReason,
+        createdAt: u.createdAt,
+        isApproved: false,
+        isRejected: status === 'rejected',
+        documents: u.registrationDocument ? [u.registrationDocument] : [],
+      }));
+
+      return res.json({ success: true, data });
+    }
+
+    // ✅ approved and all come from canteens collection
     let filter = {};
-    if (status === 'pending')  filter = { isApproved: { $ne: true }, isRejected: { $ne: true } };
     if (status === 'approved') filter = { isApproved: true };
-    if (status === 'rejected') filter = { isRejected: true };
-    // 'all' = no filter
 
     const canteens = await getCollection('canteens')
       .find(filter)
       .sort({ createdAt: -1 })
       .toArray();
 
-    // For each canteen, get order count and complaint count
-    const enriched = await Promise.all(canteens.map(async (c) => {
-      const [orderCount, complaintCount] = await Promise.all([
-        getCollection('orders').countDocuments({ canteen: c._id }),
-        getCollection('complaints').countDocuments({ canteen: c._id }).catch(() => 0),
-      ]);
-      return { ...c, orderCount, complaintCount };
-    }));
+   const enriched = await Promise.all(canteens.map(async (c) => {
+  const [orderCount, complaintCount] = await Promise.all([
+    getCollection('orders').countDocuments({ canteen: c._id }),
+    getCollection('complaints').countDocuments({ canteen: c._id }).catch(() => 0),
+  ]);
+  return { 
+    ...c, 
+    name: c.canteenName || c.name, // ✅ add this
+    orderCount, 
+    complaintCount 
+  };
+}));
 
     res.json({ success: true, data: enriched });
   } catch (err) {
@@ -67,7 +97,7 @@ const getApprovedCanteens = async (req, res) => {
   try {
     const canteens = await getCollection('canteens')
       .find({ isApproved: true })
-      .sort({ name: 1 })
+       .sort({ canteenName: 1 })
       .toArray();
 
     const enriched = await Promise.all(canteens.map(async (c) => {
@@ -88,22 +118,49 @@ const getApprovedCanteens = async (req, res) => {
 const approveCanteen = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await getCollection('canteens').findOneAndUpdate(
-      { _id: new mongoose.Types.ObjectId(id) },
-      { $set: { isApproved: true, isRejected: false, isActive: true, approvedAt: new Date(), approvedBy: req.user?._id } },
-      { returnDocument: 'after' }
-    );
 
-    if (!result) return res.status(404).json({ success: false, message: 'Canteen not found' });
+    const user = await User.findByIdAndUpdate(
+      id,
+      { status: 'approved' },
+      { new: true }
+    );
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    
+
+    const existing = await Canteen.findOne({ owner: user._id });
+   
+
+    if (!existing) {
+      const newCanteen = await Canteen.create({
+        owner:       user._id,
+        ownerName:   user.name,
+        name:        user.canteenName, // ✅ use 'name' to match existing docs
+    canteenName: user.canteenName, 
+        email:       user.email,
+        phone:       user.phone,
+        location:    user.location,
+        isApproved:  true,
+        isActive:    true,
+      });
+      
+    } else {
+      await Canteen.findOneAndUpdate(
+        { owner: user._id },
+        { isApproved: true, isActive: true }
+      );
+      
+    }
 
     await logActivity({
       type: 'CANTEEN_APPROVED',
-      description: `Canteen approved: ${result.name}`,
+      description: `Canteen approved: ${user.canteenName}`,
       performedBy: { userId: req.user?._id, name: req.user?.name || 'Admin', role: 'Admin' },
     });
 
-    res.json({ success: true, message: 'Canteen approved successfully', data: result });
+    res.json({ success: true, message: 'Canteen approved successfully' });
   } catch (err) {
+    
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -114,21 +171,31 @@ const rejectCanteen = async (req, res) => {
     const { id } = req.params;
     const { reason = '' } = req.body;
 
-    const result = await getCollection('canteens').findOneAndUpdate(
-      { _id: new mongoose.Types.ObjectId(id) },
-      { $set: { isApproved: false, isRejected: true, isActive: false, rejectedAt: new Date(), rejectionReason: reason, rejectedBy: req.user?._id } },
-      { returnDocument: 'after' }
+    const user = await User.findByIdAndUpdate(
+      id,
+      { status: 'rejected', rejectionReason: reason },
+      { new: true }
     );
-
-    if (!result) return res.status(404).json({ success: false, message: 'Canteen not found' });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     await logActivity({
       type: 'CANTEEN_REJECTED',
-      description: `Canteen rejected: ${result.name}${reason ? ` — ${reason}` : ''}`,
+      description: `Canteen rejected: ${user.canteenName}${reason ? ` — ${reason}` : ''}`,
       performedBy: { userId: req.user?._id, name: req.user?.name || 'Admin', role: 'Admin' },
     });
 
-    res.json({ success: true, message: 'Canteen rejected', data: result });
+    res.json({ success: true, message: 'Canteen rejected' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ── GET pending canteens from User collection ─────────────────────────────────
+const getPendingCanteens = async (req, res) => {
+  try {
+    const { status = 'pending' } = req.query;
+    const users = await User.find({ role: 'canteen', status }).select('-password');
+    res.json({ success: true, data: users });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -154,4 +221,13 @@ const toggleVisibility = async (req, res) => {
   }
 };
 
-module.exports = { getCanteenStats, getVisibilityStats, getCanteens, getApprovedCanteens, approveCanteen, rejectCanteen, toggleVisibility };
+module.exports = {
+  getCanteenStats,
+  getVisibilityStats,
+  getCanteens,
+  getApprovedCanteens,
+  approveCanteen,
+  rejectCanteen,
+  toggleVisibility,
+  getPendingCanteens,
+};

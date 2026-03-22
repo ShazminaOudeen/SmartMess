@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import logo from "../../../assets/logo.png";
 import { 
@@ -122,11 +123,12 @@ export default function AdminSidebar() {
   }, [location.pathname]);
 
   const sidebarWidth = collapsed ? 'w-20' : 'w-64';
+  const { logout } = useAuth();
 
   const handleLogout = () => {
-    // Add any logout logic here (clear tokens, etc.)
+    logout();
     navigate('/');
-  };
+};
 
   return (
     <div className="flex h-screen font-sans">

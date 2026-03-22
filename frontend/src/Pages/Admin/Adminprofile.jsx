@@ -1,9 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import AdminHeader from './components/AdminHeader';
+import { authFetch } from '../../utils/authFetch';
+import { useAuth } from '../../context/AuthContext';
 import { Camera, Save, Lock, User, Phone, CreditCard, Mail, RefreshCw, Check, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-// ── Validation ────────────────────────────────────────────────────────────────
 const validateProfile = (form) => {
   const errors = {};
   if (!form.name.trim()) errors.name = 'Full name is required';
@@ -47,41 +48,39 @@ const InputField = ({ label, name, type = 'text', value, onChange, error, placeh
   </div>
 );
 
-// ── Main Profile Page ─────────────────────────────────────────────────────────
 const AdminProfile = () => {
   const navigate = useNavigate();
   const fileRef = useRef(null);
 
-  // Load admin from localStorage
-  const stored = (() => { try { return JSON.parse(localStorage.getItem('user') || localStorage.getItem('admin') || '{}'); } catch { return {}; } })();
+  // ✅ Use AuthContext instead of localStorage
+  const { user: stored } = useAuth();
 
   const [preview, setPreview]     = useState(stored?.profilePicture || stored?.photo || null);
-  const [photoFile, setPhotoFile] = useState(null); // stores Base64 string
+  const [photoFile, setPhotoFile] = useState(null);
   const [form, setForm]           = useState({
     name:  stored?.name  || '',
     phone: stored?.phone || '',
     nic:   stored?.nic   || '',
   });
-  const [profileErrors, setProfileErrors]   = useState({});
-  const [profileLoading, setProfileLoading] = useState(false);
-  const [profileSuccess, setProfileSuccess] = useState(false);
+  const [profileErrors, setProfileErrors]       = useState({});
+  const [profileLoading, setProfileLoading]     = useState(false);
+  const [profileSuccess, setProfileSuccess]     = useState(false);
   const [profileServerErr, setProfileServerErr] = useState('');
 
-  const [passForm, setPassForm]   = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [passForm, setPassForm]     = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [passErrors, setPassErrors]     = useState({});
   const [passLoading, setPassLoading]   = useState(false);
   const [passSuccess, setPassSuccess]   = useState(false);
   const [passServerErr, setPassServerErr] = useState('');
-  const [showPass, setShowPass]   = useState({ current: false, new: false, confirm: false });
+  const [showPass, setShowPass]     = useState({ current: false, new: false, confirm: false });
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) { alert('Image must be under 5MB'); return; }
-    // Convert to Base64 so it can be stored directly in MongoDB
     const reader = new FileReader();
     reader.onloadend = () => {
-      setPhotoFile(reader.result); // reader.result is the Base64 string
+      setPhotoFile(reader.result);
       setPreview(reader.result);
     };
     reader.readAsDataURL(file);
@@ -106,8 +105,6 @@ const AdminProfile = () => {
     setProfileLoading(true);
     setProfileServerErr('');
     try {
-      const token = localStorage.getItem('token');
-      // Send as JSON — profilePicture is already a Base64 string
       const body = {
         name: form.name,
         phone: form.phone,
@@ -115,21 +112,13 @@ const AdminProfile = () => {
         ...(photoFile ? { profilePicture: photoFile } : {}),
       };
 
-      const res = await fetch('/api/admin/profile', {
+      // ✅ Using authFetch
+      const res = await authFetch('/api/admin/profile', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify(body),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Failed to update profile');
-
-      // Update localStorage with new data
-      const updated = { ...stored, name: form.name, phone: form.phone, nic: form.nic };
-      if (json.data?.profilePicture) updated.profilePicture = json.data.profilePicture;
-      localStorage.setItem('user', JSON.stringify(updated));
 
       setProfileSuccess(true);
       setTimeout(() => setProfileSuccess(false), 2500);
@@ -147,10 +136,9 @@ const AdminProfile = () => {
     setPassLoading(true);
     setPassServerErr('');
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/admin/change-password', {
+      // ✅ Using authFetch
+      const res = await authFetch('/api/admin/change-password', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ currentPassword: passForm.currentPassword, newPassword: passForm.newPassword }),
       });
       const json = await res.json();
@@ -174,19 +162,15 @@ const AdminProfile = () => {
       <div className="flex-1 overflow-y-auto px-5 py-5">
         <div className="max-w-3xl mx-auto space-y-5">
 
-          {/* Back button */}
           <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-primary-500 transition-colors">
             <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
           </button>
 
-          {/* ── Profile card ── */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
-            {/* Green banner */}
             <div className="h-20 bg-gradient-to-r from-primary-500 to-primary-400 relative">
               <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
             </div>
 
-            {/* Avatar + name */}
             <div className="px-6 pb-5">
               <div className="flex items-end justify-between -mt-10 mb-4">
                 <div className="relative">
@@ -197,10 +181,7 @@ const AdminProfile = () => {
                       <span className="text-xl font-black text-white">{initials}</span>
                     </div>
                   )}
-                  <button
-                    onClick={() => fileRef.current?.click()}
-                    className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-xl bg-primary-500 hover:bg-primary-600 text-white flex items-center justify-center shadow-md transition-colors"
-                  >
+                  <button onClick={() => fileRef.current?.click()} className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-xl bg-primary-500 hover:bg-primary-600 text-white flex items-center justify-center shadow-md transition-colors">
                     <Camera className="w-3.5 h-3.5" />
                   </button>
                   <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
@@ -214,15 +195,11 @@ const AdminProfile = () => {
               <form onSubmit={handleProfileSave} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <InputField label="Full Name" name="name" value={form.name} onChange={handleFormChange} error={profileErrors.name} placeholder="Your full name" icon={User} />
-                  {/* Email — read only */}
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">Email Address</label>
                     <div className="relative">
                       <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input
-                        type="email" value={stored?.email || ''} disabled
-                        className="w-full pl-10 pr-3.5 py-2.5 text-sm rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-500 cursor-not-allowed opacity-70"
-                      />
+                      <input type="email" value={stored?.email || ''} disabled className="w-full pl-10 pr-3.5 py-2.5 text-sm rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-500 cursor-not-allowed opacity-70" />
                     </div>
                     <p className="text-[10px] text-gray-400 mt-1">Email cannot be changed</p>
                   </div>
@@ -235,10 +212,7 @@ const AdminProfile = () => {
                 )}
 
                 <div className="flex justify-end">
-                  <button
-                    type="submit" disabled={profileLoading || profileSuccess}
-                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl bg-primary-500 hover:bg-primary-600 text-white transition-colors disabled:opacity-60 shadow-sm"
-                  >
+                  <button type="submit" disabled={profileLoading || profileSuccess} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl bg-primary-500 hover:bg-primary-600 text-white transition-colors disabled:opacity-60 shadow-sm">
                     {profileSuccess ? <><Check className="w-4 h-4" /> Saved!</> : profileLoading ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Saving...</> : <><Save className="w-4 h-4" /> Save Changes</>}
                   </button>
                 </div>
@@ -246,7 +220,6 @@ const AdminProfile = () => {
             </div>
           </div>
 
-          {/* ── Change Password card ── */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-6">
             <div className="flex items-center gap-3 mb-5">
               <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center">
@@ -260,8 +233,8 @@ const AdminProfile = () => {
 
             <form onSubmit={handlePasswordSave} className="space-y-4">
               {[
-                { label: 'Current Password', name: 'currentPassword', key: 'current' },
-                { label: 'New Password',     name: 'newPassword',     key: 'new' },
+                { label: 'Current Password',     name: 'currentPassword', key: 'current' },
+                { label: 'New Password',         name: 'newPassword',     key: 'new'     },
                 { label: 'Confirm New Password', name: 'confirmPassword', key: 'confirm' },
               ].map(({ label, name, key }) => (
                 <div key={name}>
@@ -279,8 +252,7 @@ const AdminProfile = () => {
                         passErrors[name] ? 'focus:ring-red-400' : 'focus:ring-primary-400'
                       } focus:border-transparent transition-all`}
                     />
-                    <button type="button" onClick={() => setShowPass(s => ({ ...s, [key]: !s[key] }))}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <button type="button" onClick={() => setShowPass(s => ({ ...s, [key]: !s[key] }))} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                       {showPass[key] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
@@ -293,8 +265,7 @@ const AdminProfile = () => {
               )}
 
               <div className="flex justify-end">
-                <button type="submit" disabled={passLoading || passSuccess}
-                  className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition-colors disabled:opacity-60 shadow-sm">
+                <button type="submit" disabled={passLoading || passSuccess} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition-colors disabled:opacity-60 shadow-sm">
                   {passSuccess ? <><Check className="w-4 h-4" /> Updated!</> : passLoading ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Updating...</> : <><Lock className="w-4 h-4" /> Update Password</>}
                 </button>
               </div>

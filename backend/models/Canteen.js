@@ -14,6 +14,7 @@ const canteenSchema = new mongoose.Schema({
 
   // Canteen info
   canteenName:        { type: String, required: true },
+  name:        { type: String },
   email:       { type: String },
   phone:       { type: String },
   location:    { type: String },

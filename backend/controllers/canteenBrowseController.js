@@ -1,4 +1,4 @@
-const Canteen = require('../models/canteen');
+const Canteen = require('../models/Canteen');
 const Meal = require('../models/Meal');
 const Order = require('../models/Order');
 
@@ -6,7 +6,14 @@ const Order = require('../models/Order');
 const getApprovedCanteens = async (req, res) => {
   try {
     const canteens = await Canteen.find({ isApproved: true, isActive: true });
-    res.status(200).json({ success: true, data: canteens });
+    
+    // ✅ normalize — ensure 'name' field always exists
+    const normalized = canteens.map(c => ({
+      ...c.toObject(),
+      name: c.name || c.canteenName || 'Unnamed Canteen',
+    }));
+
+    res.status(200).json({ success: true, data: normalized });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

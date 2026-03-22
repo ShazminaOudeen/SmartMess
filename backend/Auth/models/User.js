@@ -68,6 +68,22 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+   
+status: {
+  type: String,
+  enum: ['pending', 'approved', 'rejected'],
+  default: function() {
+    return this.role === 'canteen' ? 'pending' : 'approved';
+  },
+},
+registrationDocument: {
+  type: String, // stores file path
+  default: '',
+},
+rejectionReason: {
+  type: String,
+  default: '',
+},
   },
   { timestamps: true }
 );
