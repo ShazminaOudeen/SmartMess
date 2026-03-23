@@ -29,9 +29,7 @@ SmartMess follows a **modular, scalable MERN architecture** that reflects real-w
 - **Database:** MongoDB  
 - **Architecture:** MERN Stack, RESTful API Architecture  
 - **Tools:** VS Code, Postman, Git & GitHub  
-
-### Additional Component
-- AI Chatbot Assistant  
+ 
 
 ---
 
@@ -41,7 +39,9 @@ SmartMess follows a **modular, scalable MERN architecture** that reflects real-w
 - Student, Canteen, and Admin registration  
 - Secure login & authentication  
 - Role-based access control  
-- Profile management & password update  
+- Profile management & password update
+- AI Chatbot Assistant(Additional Component)
+- 
 
 ---
 
