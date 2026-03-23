@@ -31,16 +31,17 @@ SmartMess follows a **modular, scalable MERN architecture** that reflects real-w
 - **Tools:** VS Code, Postman, Git & GitHub  
  
 ---
+## Additional Component
+-AI Chatbot Assistant
+---
 
 ## ✨ Features (Functional Overview)
-
+---
 ## 👤 User Management & Authorization
 - Student, Canteen, and Admin registration  
 - Secure login & authentication  
 - Role-based access control  
 - Profile management & password update
-### - AI Chatbot Assistant(Additional Component)
-
 
 ---
 
