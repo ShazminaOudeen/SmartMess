@@ -33,14 +33,13 @@ SmartMess follows a **modular, scalable MERN architecture** that reflects real-w
 ---
 
 ## ✨ Features (Functional Overview)
----
 
 ## 👤 User Management & Authorization
 - Student, Canteen, and Admin registration  
 - Secure login & authentication  
 - Role-based access control  
 - Profile management & password update
-### AI Chatbot Assistant(Additional Component)
+### - AI Chatbot Assistant(Additional Component)
 
 
 ---
