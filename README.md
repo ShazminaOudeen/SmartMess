@@ -40,7 +40,7 @@ SmartMess follows a **modular, scalable MERN architecture** that reflects real-w
 - Secure login & authentication  
 - Role-based access control  
 - Profile management & password update
-- AI Chatbot Assistant(Additional Component)
+### AI Chatbot Assistant(Additional Component)
 
 
 ---
