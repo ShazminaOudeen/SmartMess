@@ -30,10 +30,10 @@ SmartMess follows a **modular, scalable MERN architecture** that reflects real-w
 - **Architecture:** MERN Stack, RESTful API Architecture  
 - **Tools:** VS Code, Postman, Git & GitHub  
  
-
 ---
 
 ## ✨ Features (Functional Overview)
+---
 
 ## 👤 User Management & Authorization
 - Student, Canteen, and Admin registration  
@@ -41,7 +41,7 @@ SmartMess follows a **modular, scalable MERN architecture** that reflects real-w
 - Role-based access control  
 - Profile management & password update
 - AI Chatbot Assistant(Additional Component)
-- 
+
 
 ---
 
