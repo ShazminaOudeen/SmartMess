@@ -94,7 +94,8 @@ export default function CartPage() {
   };
 
   const items    = cart?.items || [];
-  const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const getPrice = (i) => i.meal?.basePrice || i.meal?.price || i.price || 0;
+  const subtotal = items.reduce((s, i) => s + getPrice(i) * i.quantity, 0);
   const canteen  = cart?.canteen;
 
   return (
@@ -156,15 +157,15 @@ export default function CartPage() {
                     {/* Meal image/icon */}
                     <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {item.meal?.image
-                        ? <img src={item.meal.image} alt={item.name} className="w-full h-full object-cover" />
+                        ? <img src={item.meal.image} alt={item.meal?.name || item.name} className="w-full h-full object-cover" />
                         : <ShoppingCart size={20} className="text-green-300 dark:text-gray-500" />}
                     </div>
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{item.name}</p>
+                      <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{item.meal?.name || item.name}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        RS {item.price?.toFixed(2)} each
+                        RS {(item.meal?.basePrice || item.meal?.price || item.price || 0).toFixed(2)} each
                       </p>
                     </div>
 
@@ -193,7 +194,7 @@ export default function CartPage() {
                     {/* Subtotal */}
                     <div className="text-right flex-shrink-0 min-w-[60px]">
                       <p className="font-bold text-gray-900 dark:text-white text-sm">
-                        RS {(item.price * item.quantity).toFixed(2)}
+                        RS {((item.meal?.basePrice || item.meal?.price || item.price || 0) * item.quantity).toFixed(2)}
                       </p>
                     </div>
 
