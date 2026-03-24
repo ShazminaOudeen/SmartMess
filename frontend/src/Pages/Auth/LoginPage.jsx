@@ -67,29 +67,38 @@ export default function LoginPage() {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!formData.email || !formData.password) {
-            toast.error('Please fill in all fields');
-            return;
-        }
+   const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.email || !formData.password) {
+        toast.error('Please fill in all fields');
+        return;
+    }
 
-        setIsLoading(true);
-        try {
-            const mappedRole = role === 'user' ? 'student' : role;
-            const result = await login(formData.email, formData.password, mappedRole);
-            if (result.success) {
-                toast.success('Login successful!');
-                setTimeout(() => navigate('/'), 800);
-            }
-        } catch (error) {
-            const msg = error.response?.data?.message || 'Login failed. Please try again.';
-            toast.error(msg);
-        } finally {
-            setIsLoading(false);
+    setIsLoading(true);
+    try {
+        const mappedRole = role === 'user' ? 'student' : role;
+        const result = await login(formData.email, formData.password, mappedRole);
+        if (result.success) {
+            toast.success('Login successful!');
+            
+            // ← Replace the setTimeout navigate with this:
+            const roleRedirects = {
+                student: '/student/canteens',
+                canteen: '/canteen/dashboard',
+                admin: '/admin/dashboard',
+            };
+            const redirectTo = roleRedirects[result.user.role] || '/';
+            setTimeout(() => navigate(redirectTo), 800);
+        } else {
+            toast.error(result.message || 'Login failed');
         }
-    };
-
+    } catch (error) {
+        const msg = error.response?.data?.message || 'Login failed. Please try again.';
+        toast.error(msg);
+    } finally {
+        setIsLoading(false);
+    }
+};
     return (
         <div className="min-h-screen bg-gradient-to-br from-green-50 to-white dark:from-gray-900 dark:to-gray-800 font-sans transition-colors duration-400">
             {/* Mesh Background */}

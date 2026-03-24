@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import jsPDF from 'jspdf';
 import logoSrc from '../../assets/logo.png';
+import { authFetch } from '../../utils/authFetch';
 import AdminHeader from './components/AdminHeader';
 import {
   Users, UserCheck, UserX, Search, Filter,
@@ -14,7 +15,6 @@ const getInitials = (name) => name ? name.split(' ').map(w => w[0]).join('').sli
 const AVATAR_COLORS = ['from-violet-400 to-violet-600','from-blue-400 to-blue-600','from-emerald-400 to-emerald-600','from-amber-400 to-amber-600','from-rose-400 to-rose-600','from-cyan-400 to-cyan-600'];
 const avatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
 
-// ── Logo loader ───────────────────────────────────────────────────────────────
 const getLogoBase64 = () => new Promise((resolve) => {
   const img = new Image();
   img.onload = () => {
@@ -27,7 +27,6 @@ const getLogoBase64 = () => new Promise((resolve) => {
   img.src = logoSrc;
 });
 
-// ── PDF Generator ─────────────────────────────────────────────────────────────
 const generatePDF = async (users, filterStatus, stats) => {
   const logoBase64 = await getLogoBase64();
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
@@ -35,7 +34,6 @@ const generatePDF = async (users, filterStatus, stats) => {
   const H = doc.internal.pageSize.getHeight();
   const now = new Date();
 
-  // Header band
   doc.setFillColor(30, 27, 75);
   doc.rect(0, 0, W, 22, 'F');
   if (logoBase64) doc.addImage(logoBase64, 'PNG', 8, 3, 16, 16);
@@ -45,7 +43,6 @@ const generatePDF = async (users, filterStatus, stats) => {
   doc.setFontSize(8); doc.setFont('helvetica', 'normal');
   doc.text(`Generated: ${now.toLocaleString()}   |   Filter: ${filterStatus.toUpperCase()}   |   Total: ${users.length}`, W - 14, 14, { align: 'right' });
 
-  // Summary boxes
   const boxes = [
     { label: 'Total Users',   value: stats.total,   color: [99, 102, 241] },
     { label: 'Active Users',  value: stats.active,  color: [34, 197, 94]  },
@@ -62,7 +59,6 @@ const generatePDF = async (users, filterStatus, stats) => {
     doc.text(b.label, x + 30, 43, { align: 'center' });
   });
 
-  // Table
   const startY = 52;
   const cols = [
     { header: '#',          width: 10 },
@@ -107,7 +103,6 @@ const generatePDF = async (users, filterStatus, stats) => {
   doc.save(`users_report_${now.toISOString().slice(0, 10)}.pdf`);
 };
 
-// ── Stat Card ─────────────────────────────────────────────────────────────────
 const StatCard = ({ icon: Icon, label, value, color, loading }) => (
   <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 p-5 flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
     <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${color}`}>
@@ -122,7 +117,6 @@ const StatCard = ({ icon: Icon, label, value, color, loading }) => (
   </div>
 );
 
-// ── User Detail Modal ─────────────────────────────────────────────────────────
 const UserModal = ({ user, onClose, onBlock, onUnblock, actionLoading }) => {
   if (!user) return null;
   return (
@@ -186,7 +180,6 @@ const UserModal = ({ user, onClose, onBlock, onUnblock, actionLoading }) => {
   );
 };
 
-// ── Main ──────────────────────────────────────────────────────────────────────
 const UserManagement = () => {
   const [users, setUsers]                 = useState([]);
   const [allUsers, setAllUsers]           = useState([]);
@@ -204,13 +197,23 @@ const UserManagement = () => {
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
-    try { const r = await fetch('/api/admin/users/stats'); const j = await r.json(); if (j.success) setStats(j.data); } catch {}
+    try {
+      // ✅ authFetch
+      const r = await authFetch('/api/admin/users/stats');
+      const j = await r.json();
+      if (j.success) setStats(j.data);
+    } catch {}
     finally { setStatsLoading(false); }
   }, []);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
-    try { const r = await fetch('/api/admin/users'); const j = await r.json(); if (j.success) { setAllUsers(j.data); setUsers(j.data); } } catch {}
+    try {
+      // ✅ authFetch
+      const r = await authFetch('/api/admin/users');
+      const j = await r.json();
+      if (j.success) { setAllUsers(j.data); setUsers(j.data); }
+    } catch {}
     finally { setLoading(false); }
   }, []);
 
@@ -235,8 +238,8 @@ const UserManagement = () => {
   const handleBlock = async (id) => {
     setActionLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const r = await fetch(`/api/admin/users/${id}/block`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      // ✅ authFetch
+      const r = await authFetch(`/api/admin/users/${id}/block`, { method: 'PUT' });
       const j = await r.json();
       if (!r.ok) throw new Error(j.message);
       setAllUsers(prev => prev.map(u => u._id?.toString() === id.toString() ? { ...u, isBlocked: true } : u));
@@ -250,8 +253,8 @@ const UserManagement = () => {
   const handleUnblock = async (id) => {
     setActionLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const r = await fetch(`/api/admin/users/${id}/unblock`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      // ✅ authFetch
+      const r = await authFetch(`/api/admin/users/${id}/unblock`, { method: 'PUT' });
       const j = await r.json();
       if (!r.ok) throw new Error(j.message);
       setAllUsers(prev => prev.map(u => u._id?.toString() === id.toString() ? { ...u, isBlocked: false } : u));
@@ -288,14 +291,12 @@ const UserManagement = () => {
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4" style={{ scrollbarWidth: 'none' }}>
         <style>{`*::-webkit-scrollbar{display:none}`}</style>
 
-        {/* Stat Cards */}
         <div className="grid grid-cols-3 gap-4">
           <StatCard icon={Users}     label="Total Users"   value={stats.total}   color="bg-indigo-500"  loading={statsLoading} />
           <StatCard icon={UserCheck} label="Active Users"  value={stats.active}  color="bg-primary-500" loading={statsLoading} />
           <StatCard icon={UserX}     label="Blocked Users" value={stats.blocked} color="bg-red-500"     loading={statsLoading} />
         </div>
 
-        {/* Search + Filter + Export */}
         <div className="flex items-center gap-3 flex-wrap">
           <div className="relative flex-1 min-w-48">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -326,7 +327,6 @@ const UserManagement = () => {
           </p>
         )}
 
-        {/* Table */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
           <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-gray-100 dark:border-gray-700/60 bg-gray-50 dark:bg-gray-700/30">
             <div className="col-span-4 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">User</div>

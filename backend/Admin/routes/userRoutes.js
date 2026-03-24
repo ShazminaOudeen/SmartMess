@@ -1,7 +1,8 @@
 const express = require('express');
-const { getUserStats, getUsers, blockUser, unblockUser } = require('../controllers/userController');
+const { getUserStats, getUsers, blockUser, unblockUser, createAdmin } = require('../controllers/userController');
 const router = express.Router();
 
+router.post('/create-admin', createAdmin);
 router.get('/users/stats',       getUserStats);
 router.get('/users',             getUsers);
 router.put('/users/:id/block',   blockUser);

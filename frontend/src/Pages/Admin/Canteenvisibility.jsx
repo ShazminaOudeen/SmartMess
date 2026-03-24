@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import jsPDF from 'jspdf';
 import logoSrc from '../../assets/logo.png';
+import { authFetch } from '../../utils/authFetch';
 import AdminHeader from './components/AdminHeader';
 import {
   Store, Eye, EyeOff, Star, ShoppingBag,
@@ -21,7 +22,6 @@ const getLogoBase64 = () => new Promise((resolve) => {
   img.src = logoSrc;
 });
 
-// ── PDF Generator ─────────────────────────────────────────────────────────────
 const generatePDF = async (canteens, filterVis) => {
   const logoBase64 = await getLogoBase64();
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
@@ -29,7 +29,6 @@ const generatePDF = async (canteens, filterVis) => {
   const H = doc.internal.pageSize.getHeight();
   const now = new Date();
 
-  // Header band — dark indigo so logo stands out
   doc.setFillColor(49, 46, 129);
   doc.rect(0, 0, W, 22, 'F');
   if (logoBase64) doc.addImage(logoBase64, 'PNG', 8, 3, 16, 16);
@@ -39,17 +38,16 @@ const generatePDF = async (canteens, filterVis) => {
   doc.setFontSize(8); doc.setFont('helvetica', 'normal');
   doc.text(`Generated: ${now.toLocaleString()}   |   Filter: ${filterVis.toUpperCase()}   |   Total: ${canteens.length}`, W - 14, 14, { align: 'right' });
 
-  // Summary boxes
   const operating = canteens.length;
   const visible   = canteens.filter(c => c.isActive).length;
   const hidden    = canteens.filter(c => !c.isActive).length;
   const avgRating = canteens.length ? (canteens.reduce((s, c) => s + (c.rating || c.averageRating || 0), 0) / canteens.length).toFixed(1) : '0.0';
 
   const boxes = [
-    { label: 'Operating',   value: operating,  color: [99, 102, 241] },
-    { label: 'Visible',     value: visible,    color: [34, 197, 94]  },
-    { label: 'Hidden',      value: hidden,     color: [107, 114, 128]},
-    { label: 'Avg Rating',  value: avgRating,  color: [245, 158, 11] },
+    { label: 'Operating',  value: operating, color: [99, 102, 241]  },
+    { label: 'Visible',    value: visible,   color: [34, 197, 94]   },
+    { label: 'Hidden',     value: hidden,    color: [107, 114, 128] },
+    { label: 'Avg Rating', value: avgRating, color: [245, 158, 11]  },
   ];
   boxes.forEach((b, i) => {
     const x = 14 + i * 65;
@@ -62,20 +60,18 @@ const generatePDF = async (canteens, filterVis) => {
     doc.text(b.label, x + 30, 43, { align: 'center' });
   });
 
-  // Table
   const startY = 52;
   const cols = [
-    { header: '#',           width: 10 },
-    { header: 'Canteen Name',width: 55 },
-    { header: 'Owner',       width: 45 },
-    { header: 'Status',      width: 22 },
-    { header: 'Visibility',  width: 22 },
-    { header: 'Rating',      width: 20 },
-    { header: 'Orders',      width: 22 },
-    { header: 'Complaints',  width: 22 },
+    { header: '#',            width: 10 },
+    { header: 'Canteen Name', width: 55 },
+    { header: 'Owner',        width: 45 },
+    { header: 'Status',       width: 22 },
+    { header: 'Visibility',   width: 22 },
+    { header: 'Rating',       width: 20 },
+    { header: 'Orders',       width: 22 },
+    { header: 'Complaints',   width: 22 },
   ];
 
-  // Header row
   let x = 14;
   doc.setFillColor(243, 244, 246);
   doc.rect(14, startY, W - 28, 8, 'F');
@@ -83,7 +79,6 @@ const generatePDF = async (canteens, filterVis) => {
   doc.setFontSize(8); doc.setFont('helvetica', 'bold');
   cols.forEach(col => { doc.text(col.header, x + 2, startY + 5.5); x += col.width; });
 
-  // Data rows
   doc.setFont('helvetica', 'normal');
   let y = startY + 8;
   canteens.forEach((c, i) => {
@@ -103,7 +98,7 @@ const generatePDF = async (canteens, filterVis) => {
     ];
     x = 14;
     cols.forEach((col, ci) => {
-      if (ci === 4) { doc.setTextColor(...visColor);  doc.setFont('helvetica', 'bold'); }
+      if (ci === 4) { doc.setTextColor(...visColor); doc.setFont('helvetica', 'bold'); }
       else if (ci === 7) { doc.setTextColor(...compColor); doc.setFont('helvetica', 'bold'); }
       else { doc.setTextColor(31, 41, 55); doc.setFont('helvetica', 'normal'); }
       doc.setFontSize(7.5);
@@ -115,16 +110,13 @@ const generatePDF = async (canteens, filterVis) => {
     y += 8;
   });
 
-  // Footer
   doc.setTextColor(156, 163, 175);
   doc.setFontSize(7); doc.setFont('helvetica', 'normal');
   doc.text('SmartMess Admin System — Confidential', 14, H - 5);
   doc.text('Page 1', W - 14, H - 5, { align: 'right' });
-
   doc.save(`canteen_visibility_${now.toISOString().slice(0, 10)}.pdf`);
 };
 
-// ── Stat Card ─────────────────────────────────────────────────────────────────
 const StatCard = ({ icon: Icon, label, value, color, loading }) => (
   <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 p-5 flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
     <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${color}`}>
@@ -148,36 +140,44 @@ const StarRating = ({ rating = 0 }) => (
   </div>
 );
 
-// ── Main ─────────────────────────────────────────────────────────────────────
 const CanteenVisibility = () => {
-  const [canteens, setCanteens]             = useState([]);
-  const [allCanteens, setAllCanteens]       = useState([]);
-  const [stats, setStats]                   = useState({ operating: 0, visible: 0, hidden: 0 });
-  const [loading, setLoading]               = useState(true);
-  const [statsLoading, setStatsLoading]     = useState(true);
-  const [toggling, setToggling]             = useState(null);
-  const [search, setSearch]                 = useState('');
-  const [filterVis, setFilterVis]           = useState('all');
-  const [toast, setToast]                   = useState(null);
-  const [pdfLoading, setPdfLoading]         = useState(false);
+  const [canteens, setCanteens]         = useState([]);
+  const [allCanteens, setAllCanteens]   = useState([]);
+  const [stats, setStats]               = useState({ operating: 0, visible: 0, hidden: 0 });
+  const [loading, setLoading]           = useState(true);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [toggling, setToggling]         = useState(null);
+  const [search, setSearch]             = useState('');
+  const [filterVis, setFilterVis]       = useState('all');
+  const [toast, setToast]               = useState(null);
+  const [pdfLoading, setPdfLoading]     = useState(false);
 
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
-    try { const r = await fetch('/api/admin/canteens/visibility-stats'); const j = await r.json(); if (j.success) setStats(j.data); } catch {}
+    try {
+      // ✅ authFetch
+      const r = await authFetch('/api/admin/canteens/visibility-stats');
+      const j = await r.json();
+      if (j.success) setStats(j.data);
+    } catch {}
     finally { setStatsLoading(false); }
   }, []);
 
   const fetchCanteens = useCallback(async () => {
     setLoading(true);
-    try { const r = await fetch('/api/admin/canteens/approved-list'); const j = await r.json(); if (j.success) { setAllCanteens(j.data); setCanteens(j.data); } } catch {}
+    try {
+      // ✅ authFetch
+      const r = await authFetch('/api/admin/canteens/approved-list');
+      const j = await r.json();
+      if (j.success) { setAllCanteens(j.data); setCanteens(j.data); }
+    } catch {}
     finally { setLoading(false); }
   }, []);
 
   useEffect(() => { fetchStats(); fetchCanteens(); }, []);
 
-  // Search + visibility filter applied together
   useEffect(() => {
     let result = allCanteens;
     if (filterVis === 'visible') result = result.filter(c => c.isActive);
@@ -192,30 +192,28 @@ const CanteenVisibility = () => {
     setCanteens(result);
   }, [search, filterVis, allCanteens]);
 
- const handleToggle = async (id, current) => {
+  const handleToggle = async (id, current) => {
     setToggling(id);
     try {
-      const token = localStorage.getItem('token');
       const canteen = allCanteens.find(c => c._id?.toString() === id.toString());
-        console.log('🔍 Toggling:', id, 'Found canteen:', canteen?.name);
-      const r = await fetch(`/api/admin/canteens/${id}/visibility`, {
+      console.log('🔍 Toggling:', id, 'Found canteen:', canteen?.name);
+
+      // ✅ authFetch
+      const r = await authFetch(`/api/admin/canteens/${id}/visibility`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ isActive: !current }),
       });
       const j = await r.json();
-      console.log('📡 API response:', j); 
+      console.log('📡 API response:', j);
       if (!r.ok) throw new Error(j.message);
 
-      // ✅ Fix — use toString() to compare MongoDB ObjectId correctly
       setAllCanteens(prev => prev.map(c =>
         c._id?.toString() === id.toString() ? { ...c, isActive: !current } : c
       ));
 
-      // Log to system activity
-      await fetch('/api/admin/dashboard/activity', {
+      // ✅ authFetch for activity log
+      await authFetch('/api/admin/dashboard/activity', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
           type: !current ? 'CANTEEN_VISIBLE' : 'CANTEEN_HIDDEN',
           description: `Canteen "${canteen?.name || id}" has been ${!current ? 'made visible to students' : 'hidden from students'}`,
@@ -227,14 +225,13 @@ const CanteenVisibility = () => {
     } catch (err) { showToast(err.message, 'error'); }
     finally { setToggling(null); }
   };
-    
 
   const handleExportPDF = async () => {
-  setPdfLoading(true);
-  try { await generatePDF(canteens, filterVis); showToast('PDF exported successfully!'); }
-  catch (err) { showToast('PDF export failed: ' + err.message, 'error'); console.error(err); }
-  finally { setPdfLoading(false); }
-};
+    setPdfLoading(true);
+    try { await generatePDF(canteens, filterVis); showToast('PDF exported successfully!'); }
+    catch (err) { showToast('PDF export failed: ' + err.message, 'error'); console.error(err); }
+    finally { setPdfLoading(false); }
+  };
 
   const VIS_FILTERS = [
     { key: 'all',     label: 'All',     cls: 'text-indigo-600 bg-indigo-50 border-indigo-200 dark:bg-indigo-900/20 dark:border-indigo-700 dark:text-indigo-400' },
@@ -255,14 +252,12 @@ const CanteenVisibility = () => {
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4" style={{ scrollbarWidth: 'none' }}>
         <style>{`*::-webkit-scrollbar{display:none}`}</style>
 
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
           <StatCard icon={Store}  label="Operating Canteens" value={stats.operating} color="bg-indigo-500"  loading={statsLoading} />
           <StatCard icon={Eye}    label="Visible Canteens"   value={stats.visible}   color="bg-primary-500" loading={statsLoading} />
           <StatCard icon={EyeOff} label="Hidden Canteens"    value={stats.hidden}    color="bg-gray-500"    loading={statsLoading} />
         </div>
 
-        {/* Search + Filter + Export */}
         <div className="flex items-center gap-3 flex-wrap">
           <div className="relative flex-1 min-w-48">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -285,7 +280,6 @@ const CanteenVisibility = () => {
           </button>
         </div>
 
-        {/* Results count */}
         {(search || filterVis !== 'all') && (
           <p className="text-xs text-gray-400 dark:text-gray-500">
             Showing <span className="font-semibold text-gray-600 dark:text-gray-300">{canteens.length}</span> canteen{canteens.length !== 1 ? 's' : ''}
@@ -294,9 +288,7 @@ const CanteenVisibility = () => {
           </p>
         )}
 
-        {/* Table */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
-          {/* Table Header */}
           <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-gray-100 dark:border-gray-700/60 bg-gray-50 dark:bg-gray-700/30">
             {[['Canteen', 3], ['Status', 2], ['Rating', 2], ['Orders', 2], ['Complaints', 2], ['Visibility', 1]].map(([h, span]) => (
               <div key={h} className={`col-span-${span} text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 ${h === 'Visibility' ? 'text-right' : ''}`}>{h}</div>
@@ -325,7 +317,6 @@ const CanteenVisibility = () => {
             <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
               {canteens.map(c => (
                 <div key={c._id} className="grid grid-cols-12 gap-4 px-5 py-3.5 items-center hover:bg-gray-50 dark:hover:bg-gray-700/20 transition-colors">
-                  {/* Name */}
                   <div className="col-span-3 flex items-center gap-3 min-w-0">
                     {c.images?.[0]
                       ? <img src={c.images[0]} alt={c.name} className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
@@ -335,30 +326,25 @@ const CanteenVisibility = () => {
                       <p className="text-[10px] text-gray-400 truncate">{c.ownerName || c.owner?.name || '—'}</p>
                     </div>
                   </div>
-                  {/* Active status */}
                   <div className="col-span-2">
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${c.isActive ? 'bg-green-50 text-green-600 ring-1 ring-green-200 dark:bg-green-900/20 dark:text-green-400 dark:ring-green-800' : 'bg-gray-100 text-gray-500 ring-1 ring-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:ring-gray-600'}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${c.isActive ? 'bg-green-500' : 'bg-gray-400'}`} />
                       {c.isActive ? 'Active' : 'Hidden'}
                     </span>
                   </div>
-                  {/* Rating */}
                   <div className="col-span-2"><StarRating rating={c.rating || c.averageRating} /></div>
-                  {/* Orders */}
                   <div className="col-span-2">
                     <div className="flex items-center gap-1.5">
                       <ShoppingBag className="w-3.5 h-3.5 text-gray-400" />
                       <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{fmt(c.orderCount || c.totalOrders || 0)}</span>
                     </div>
                   </div>
-                  {/* Complaints */}
                   <div className="col-span-2">
                     <div className="flex items-center gap-1.5">
                       <AlertTriangle className={`w-3.5 h-3.5 ${(c.complaintCount||0) > 0 ? 'text-amber-400' : 'text-gray-300 dark:text-gray-600'}`} />
                       <span className={`text-sm font-bold ${(c.complaintCount||0) > 0 ? 'text-amber-500' : 'text-gray-400'}`}>{fmt(c.complaintCount || 0)}</span>
                     </div>
                   </div>
-                  {/* Toggle */}
                   <div className="col-span-1 flex justify-end">
                     <button onClick={() => handleToggle(c._id, c.isActive)} disabled={toggling === c._id}
                       className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition-all disabled:opacity-50 ${c.isActive ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600' : 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 hover:bg-primary-100'}`}>

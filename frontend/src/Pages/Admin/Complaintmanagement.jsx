@@ -1,25 +1,24 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import AdminHeader from './components/AdminHeader';
+import { authFetch } from '../../utils/authFetch';
 import {
   MessageSquare, Clock, CheckCircle, XCircle, Search,
   Filter, RefreshCw, Eye, Mail, ChevronDown,
-  AlertTriangle, User, Store, Tag, Calendar,
+  AlertTriangle, User, Store, Tag,
   Send, Paperclip, X, InboxIcon,
 } from 'lucide-react';
 
 const fmtDate  = (d) => d ? new Date(d).toLocaleDateString('en-US', { day:'numeric', month:'short', year:'numeric' }) : '—';
 const fmtTime  = (d) => d ? new Date(d).toLocaleString('en-US', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '—';
 const getId    = (id) => id ? String(id).slice(-6).toUpperCase() : '??????';
+const imgUrl   = (path) => path ? `http://localhost:5000${path}` : null;
 
-// ── Status config ─────────────────────────────────────────────────────────────
 const STATUS = {
   pending:   { label: 'Pending',   color: 'bg-yellow-50 text-yellow-600 ring-1 ring-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:ring-yellow-800',   dot: 'bg-yellow-500'  },
   inreview:  { label: 'In Review', color: 'bg-blue-50 text-blue-600 ring-1 ring-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:ring-blue-800',               dot: 'bg-blue-500'    },
   resolved:  { label: 'Resolved',  color: 'bg-green-50 text-green-600 ring-1 ring-green-200 dark:bg-green-900/20 dark:text-green-400 dark:ring-green-800',         dot: 'bg-green-500'   },
   closed:    { label: 'Closed',    color: 'bg-gray-100 text-gray-500 ring-1 ring-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:ring-gray-600',                 dot: 'bg-gray-400'    },
 };
-
-const CATEGORIES = ['Order Issue','Food Quality','Service','Payment','App Bug','Other'];
 
 const FILTERS = [
   { key: 'all',      label: 'All'       },
@@ -29,7 +28,6 @@ const FILTERS = [
   { key: 'closed',   label: 'Closed'    },
 ];
 
-// ── Status Badge ──────────────────────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
   const cfg = STATUS[status] || STATUS.pending;
   return (
@@ -40,7 +38,6 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-// ── Stat Card ─────────────────────────────────────────────────────────────────
 const StatCard = ({ icon: Icon, label, value, color, loading }) => (
   <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 p-5 flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
     <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${color}`}>
@@ -55,19 +52,17 @@ const StatCard = ({ icon: Icon, label, value, color, loading }) => (
   </div>
 );
 
-// ── Email Modal ───────────────────────────────────────────────────────────────
 const EmailModal = ({ complaint, onClose, onSend, sending }) => {
   const [subject, setSubject] = useState(`Re: Complaint #${getId(complaint?._id)} — ${complaint?.category || ''}`);
   const [body, setBody]       = useState('');
   if (!complaint) return null;
-  const recipientEmail = complaint.submittedByEmail || complaint.userEmail || complaint.canteenEmail || '';
+  const recipientEmail = complaint.submittedByEmail || '';
   const recipientName  = complaint.submittedByName  || 'User';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
@@ -82,14 +77,10 @@ const EmailModal = ({ complaint, onClose, onSend, sending }) => {
             <X className="w-4 h-4" />
           </button>
         </div>
-
-        {/* Complaint context */}
         <div className="px-6 py-3 bg-gray-50 dark:bg-gray-700/30 border-b border-gray-100 dark:border-gray-700">
           <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1">Regarding Complaint</p>
           <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate">#{getId(complaint._id)} — {complaint.category} · <StatusBadge status={complaint.status} /></p>
         </div>
-
-        {/* Form */}
         <div className="px-6 py-4 space-y-3">
           <div>
             <label className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1 block">Subject</label>
@@ -103,12 +94,8 @@ const EmailModal = ({ complaint, onClose, onSend, sending }) => {
               className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none transition-all" />
           </div>
         </div>
-
-        {/* Footer */}
         <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2.5 text-sm font-semibold rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-            Cancel
-          </button>
+          <button onClick={onClose} className="flex-1 py-2.5 text-sm font-semibold rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Cancel</button>
           <button onClick={() => onSend({ complaintId: complaint._id, to: recipientEmail, subject, body })}
             disabled={sending || !body.trim() || !recipientEmail}
             className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-xl bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50 transition-colors">
@@ -121,24 +108,21 @@ const EmailModal = ({ complaint, onClose, onSend, sending }) => {
   );
 };
 
-// ── Detail Modal ──────────────────────────────────────────────────────────────
 const DetailModal = ({ complaint, onClose, onStatusChange, onEmail, statusLoading }) => {
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   if (!complaint) return null;
 
   const STATUS_ACTIONS = [
-    { key: 'pending',  label: 'Mark Pending',   icon: Clock,         cls: 'text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20' },
-    { key: 'inreview', label: 'Mark In Review',  icon: Eye,           cls: 'text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20'       },
-    { key: 'resolved', label: 'Mark Resolved',   icon: CheckCircle,   cls: 'text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20'   },
-    { key: 'closed',   label: 'Mark Closed',     icon: XCircle,       cls: 'text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50'      },
+    { key: 'pending',  label: 'Mark Pending',  icon: Clock,       cls: 'text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20' },
+    { key: 'inreview', label: 'Mark In Review', icon: Eye,         cls: 'text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20'       },
+    { key: 'resolved', label: 'Mark Resolved',  icon: CheckCircle, cls: 'text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20'    },
+    { key: 'closed',   label: 'Mark Closed',    icon: XCircle,     cls: 'text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50'       },
   ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl border border-gray-200 dark:border-gray-700 overflow-hidden max-h-[90vh] flex flex-col">
-
-        {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-start justify-between flex-shrink-0">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -153,9 +137,7 @@ const DetailModal = ({ complaint, onClose, onStatusChange, onEmail, statusLoadin
           </button>
         </div>
 
-        {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-          {/* Submitted by */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
               <div className="flex items-center gap-1.5 mb-1">
@@ -175,28 +157,26 @@ const DetailModal = ({ complaint, onClose, onStatusChange, onEmail, statusLoadin
             </div>
           </div>
 
-          {/* Description */}
           <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
             <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-2">Description</p>
             <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{complaint.description || 'No description provided.'}</p>
           </div>
 
-          {/* Attachment */}
           {complaint.attachment && (
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-2">Attachment</p>
               <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-600">
-                <img src={complaint.attachment} alt="Complaint attachment"
-                  className="w-full max-h-64 object-contain bg-gray-50 dark:bg-gray-700" />
+                <img src={imgUrl(complaint.attachment)} alt="Complaint attachment"
+                  className="w-full max-h-64 object-contain bg-gray-50 dark:bg-gray-700"
+                  onError={(e) => { e.target.style.display = 'none'; }} />
               </div>
-              <a href={complaint.attachment} target="_blank" rel="noreferrer"
+              <a href={imgUrl(complaint.attachment)} target="_blank" rel="noreferrer"
                 className="inline-flex items-center gap-1.5 mt-2 text-xs text-blue-500 hover:text-blue-600 font-semibold">
                 <Paperclip className="w-3.5 h-3.5" /> View full image
               </a>
             </div>
           )}
 
-          {/* Admin notes if any */}
           {complaint.adminNote && (
             <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 border border-blue-100 dark:border-blue-800">
               <p className="text-[10px] font-bold uppercase tracking-wide text-blue-500 mb-1">Admin Note</p>
@@ -205,14 +185,11 @@ const DetailModal = ({ complaint, onClose, onStatusChange, onEmail, statusLoadin
           )}
         </div>
 
-        {/* Actions footer */}
         <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex items-center gap-3 flex-shrink-0">
           <button onClick={() => onEmail(complaint)}
             className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-xl bg-blue-500 hover:bg-blue-600 text-white transition-colors">
             <Mail className="w-4 h-4" /> Email User
           </button>
-
-          {/* Status dropdown */}
           <div className="relative">
             <button onClick={() => setShowStatusMenu(v => !v)} disabled={statusLoading}
               className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-xl border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors">
@@ -231,7 +208,6 @@ const DetailModal = ({ complaint, onClose, onStatusChange, onEmail, statusLoadin
               </div>
             )}
           </div>
-
           <button onClick={onClose} className="ml-auto px-4 py-2.5 text-sm font-semibold rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
             Close
           </button>
@@ -241,7 +217,6 @@ const DetailModal = ({ complaint, onClose, onStatusChange, onEmail, statusLoadin
   );
 };
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
 const Toast = ({ toast }) => {
   if (!toast) return null;
   return (
@@ -252,7 +227,6 @@ const Toast = ({ toast }) => {
   );
 };
 
-// ── Main ──────────────────────────────────────────────────────────────────────
 const ComplaintManagement = () => {
   const [complaints, setComplaints]       = useState([]);
   const [allComplaints, setAllComplaints] = useState([]);
@@ -273,26 +247,25 @@ const ComplaintManagement = () => {
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      const r = await fetch('/api/admin/complaints/stats');
+      // ✅ authFetch
+      const r = await authFetch('/api/admin/complaints/stats');
       const j = await r.json();
       if (j.success) setStats(j.data);
-    } catch {}
-    finally { setStatsLoading(false); }
+    } catch {} finally { setStatsLoading(false); }
   }, []);
 
   const fetchComplaints = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch('/api/admin/complaints');
+      // ✅ authFetch
+      const r = await authFetch('/api/admin/complaints');
       const j = await r.json();
       if (j.success) { setAllComplaints(j.data); setComplaints(j.data); }
-    } catch {}
-    finally { setLoading(false); }
+    } catch {} finally { setLoading(false); }
   }, []);
 
   useEffect(() => { fetchStats(); fetchComplaints(); }, []);
 
-  // Search + filter
   useEffect(() => {
     let result = allComplaints;
     if (filterStatus !== 'all') result = result.filter(c => c.status === filterStatus);
@@ -313,10 +286,9 @@ const ComplaintManagement = () => {
   const handleStatusChange = async (id, newStatus) => {
     setStatusLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const r = await fetch(`/api/admin/complaints/${id}/status`, {
+      // ✅ authFetch
+      const r = await authFetch(`/api/admin/complaints/${id}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ status: newStatus }),
       });
       const j = await r.json();
@@ -332,10 +304,9 @@ const ComplaintManagement = () => {
   const handleSendEmail = async ({ complaintId, to, subject, body }) => {
     setEmailSending(true);
     try {
-      const token = localStorage.getItem('token');
-      const r = await fetch('/api/admin/complaints/send-email', {
+      // ✅ authFetch
+      const r = await authFetch('/api/admin/complaints/send-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ complaintId, to, subject, body }),
       });
       const j = await r.json();
@@ -362,26 +333,19 @@ const ComplaintManagement = () => {
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4" style={{ scrollbarWidth: 'none' }}>
         <style>{`*::-webkit-scrollbar{display:none}`}</style>
 
-        {/* Stat Cards */}
         <div className="grid grid-cols-3 gap-4">
-          <StatCard icon={MessageSquare} label="Total Complaints"  value={stats.total}    color="bg-indigo-500"  loading={statsLoading} />
-          <StatCard icon={Clock}         label="Pending"           value={stats.pending}  color="bg-yellow-500" loading={statsLoading} />
-          <StatCard icon={CheckCircle}   label="Resolved"          value={stats.resolved} color="bg-green-500"  loading={statsLoading} />
+          <StatCard icon={MessageSquare} label="Total Complaints" value={stats.total}    color="bg-indigo-500"  loading={statsLoading} />
+          <StatCard icon={Clock}         label="Pending"          value={stats.pending}  color="bg-yellow-500" loading={statsLoading} />
+          <StatCard icon={CheckCircle}   label="Resolved"         value={stats.resolved} color="bg-green-500"  loading={statsLoading} />
         </div>
 
-        {/* Table */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
-
-          {/* Toolbar */}
           <div className="px-5 pt-4 pb-3 border-b border-gray-100 dark:border-gray-700/60 space-y-3">
-            {/* Row 1: title + type + status filters */}
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-2 flex-shrink-0">
                 <AlertTriangle className="w-4 h-4 text-orange-400" />
                 <h3 className="text-sm font-bold text-gray-800 dark:text-white">All Complaints</h3>
               </div>
-
-              {/* Type filter */}
               <div className="flex items-center gap-1.5">
                 {TYPE_FILTERS.map(f => (
                   <button key={f.key} onClick={() => setFilterType(f.key)}
@@ -392,8 +356,6 @@ const ComplaintManagement = () => {
                   </button>
                 ))}
               </div>
-
-              {/* Status filter */}
               <div className="flex items-center gap-1.5 ml-2">
                 <Filter className="w-3 h-3 text-gray-400 flex-shrink-0" />
                 {FILTERS.map(f => (
@@ -409,14 +371,10 @@ const ComplaintManagement = () => {
                   </button>
                 ))}
               </div>
-
-              {/* Count badge */}
               <span className="ml-auto text-[11px] font-bold text-gray-400 flex-shrink-0">
                 {complaints.length} complaint{complaints.length !== 1 ? 's' : ''}
               </span>
             </div>
-
-            {/* Row 2: search */}
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
               <input value={search} onChange={e => setSearch(e.target.value)}
@@ -425,19 +383,15 @@ const ComplaintManagement = () => {
             </div>
           </div>
 
-          {/* Table header */}
           <div className="grid grid-cols-12 gap-3 px-5 py-2.5 bg-gray-50 dark:bg-gray-700/30 border-b border-gray-100 dark:border-gray-700/60">
-            <div className="col-span-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">ID</div>
-            <div className="col-span-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">Submitted By</div>
-            <div className="col-span-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">Type</div>
-            <div className="col-span-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">Category</div>
-            <div className="col-span-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">Description</div>
-            <div className="col-span-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">Date</div>
-            <div className="col-span-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">Status</div>
-            <div className="col-span-1 text-[10px] font-bold uppercase tracking-widest text-gray-400 text-right">Actions</div>
+            {['ID','Submitted By','Type','Category','Description','Date','Status','Actions'].map((h, i) => (
+              <div key={h} className={`text-[10px] font-bold uppercase tracking-widest text-gray-400 ${
+                i === 0 ? 'col-span-1' : i === 1 ? 'col-span-2' : i === 2 ? 'col-span-1' :
+                i === 3 ? 'col-span-2' : i === 4 ? 'col-span-3' : i === 5 ? 'col-span-1' :
+                i === 6 ? 'col-span-1' : 'col-span-1 text-right'}`}>{h}</div>
+            ))}
           </div>
 
-          {/* Rows */}
           {loading ? (
             <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
               {[1,2,3,4,5].map(i => (
@@ -467,36 +421,25 @@ const ComplaintManagement = () => {
             <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
               {complaints.map(c => (
                 <div key={c._id} className="grid grid-cols-12 gap-3 px-5 py-3 items-center hover:bg-gray-50 dark:hover:bg-gray-700/20 transition-colors">
-
-                  {/* ID */}
                   <div className="col-span-1">
                     <span className="text-[11px] font-black text-gray-400 dark:text-gray-500 font-mono">#{getId(c._id)}</span>
                   </div>
-
-                  {/* Submitted By */}
                   <div className="col-span-2 min-w-0">
                     <p className="text-xs font-bold text-gray-800 dark:text-white truncate">{c.submittedByName || '—'}</p>
                     <p className="text-[10px] text-gray-400 truncate">{c.submittedByEmail || '—'}</p>
                   </div>
-
-                  {/* Type */}
                   <div className="col-span-1">
                     <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
                       c.submitterType === 'canteen'
                         ? 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400'
-                        : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
-                    }`}>
+                        : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'}`}>
                       {c.submitterType === 'canteen' ? <Store className="w-2.5 h-2.5" /> : <User className="w-2.5 h-2.5" />}
                       {c.submitterType === 'canteen' ? 'Canteen' : 'User'}
                     </span>
                   </div>
-
-                  {/* Category */}
                   <div className="col-span-2 min-w-0">
                     <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate">{c.category || '—'}</p>
                   </div>
-
-                  {/* Description */}
                   <div className="col-span-3 min-w-0">
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.description || '—'}</p>
                     {c.attachment && (
@@ -505,18 +448,10 @@ const ComplaintManagement = () => {
                       </span>
                     )}
                   </div>
-
-                  {/* Date */}
                   <div className="col-span-1">
                     <p className="text-[10px] text-gray-400">{fmtDate(c.createdAt)}</p>
                   </div>
-
-                  {/* Status */}
-                  <div className="col-span-1">
-                    <StatusBadge status={c.status} />
-                  </div>
-
-                  {/* Actions */}
+                  <div className="col-span-1"><StatusBadge status={c.status} /></div>
                   <div className="col-span-1 flex items-center justify-end gap-1">
                     <button onClick={() => setSelected(c)} title="View Details"
                       className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-600 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600 transition-colors">
@@ -532,7 +467,6 @@ const ComplaintManagement = () => {
             </div>
           )}
 
-          {/* Footer */}
           {complaints.length > 0 && !loading && (
             <div className="px-5 py-2.5 border-t border-gray-100 dark:border-gray-700/60 bg-gray-50 dark:bg-gray-800 flex items-center gap-4 text-[11px] text-gray-400">
               <span>{complaints.length} shown</span>
@@ -547,7 +481,6 @@ const ComplaintManagement = () => {
         </div>
       </div>
 
-      {/* Modals */}
       {selected && (
         <DetailModal complaint={selected} onClose={() => setSelected(null)}
           onStatusChange={handleStatusChange} onEmail={openEmail} statusLoading={statusLoading} />

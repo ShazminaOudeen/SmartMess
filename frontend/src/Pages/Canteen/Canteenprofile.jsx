@@ -1,11 +1,50 @@
+//frontend/src/pages/Canteen/CanteenProfile.jsx
+ 
 import { useState, useEffect, useRef } from 'react';
 import {
   Store, MapPin, User, FileText, Camera, Save,
   CheckCircle, XCircle, Loader2, Upload, Trash2, Phone, Mail
 } from 'lucide-react';
-
+ 
 const API = '/api/canteen/profile';
-
+ 
+// ── Validation helpers ────────────────────────────────────────────────────────
+const validate = (form) => {
+  const errors = {};
+ 
+  // Owner Name: required, max 50 chars
+  if (!form.ownerName.trim()) {
+    errors.ownerName = 'Owner name is required';
+  } else if (form.ownerName.trim().length > 50) {
+    errors.ownerName = 'Owner name must be 50 characters or less';
+  }
+ 
+  // Canteen Name: required, max 50 chars
+  if (!form.canteenName.trim()) {
+    errors.canteenName = 'Canteen name is required';
+  } else if (form.canteenName.trim().length > 50) {
+    errors.canteenName = 'Canteen name must be 50 characters or less';
+  }
+ 
+  // Email: must contain @ and .
+  if (form.email.trim()) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email.trim())) {
+      errors.email = 'Enter a valid email address';
+    }
+  }
+ 
+  // Phone: must start with 07, exactly 10 digits
+  if (form.phone.trim()) {
+    const digitsOnly = form.phone.trim().replace(/\s+/g, '');
+    if (!/^07\d{8}$/.test(digitsOnly)) {
+      errors.phone = 'Phone must start with 07 and be exactly 10 digits';
+    }
+  }
+ 
+  return errors;
+};
+ 
 export default function CanteenProfile() {
   const [profile, setProfile]       = useState(null);
   const [form, setForm]             = useState({});
@@ -14,16 +53,17 @@ export default function CanteenProfile() {
   const [toast, setToast]           = useState(null);
   const [imgPreview, setImgPreview] = useState(null);
   const [imgFile, setImgFile]       = useState(null);
+  const [errors, setErrors]         = useState({});
   const fileRef = useRef();
-
+ 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
   };
-
+ 
   const buildImgUrl = (path) =>
     path ? (path.startsWith('blob:') ? path : `http://localhost:5000${path}`) : null;
-
+ 
   // Fetch profile
   useEffect(() => {
     const fetchProfile = async () => {
@@ -54,9 +94,14 @@ export default function CanteenProfile() {
     };
     fetchProfile();
   }, []);
-
-  const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
-
+ 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(f => ({ ...f, [name]: value }));
+    // Clear error for this field on change
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: undefined }));
+  };
+ 
   const handleImage = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -64,25 +109,28 @@ export default function CanteenProfile() {
     setImgFile(file);
     setImgPreview(URL.createObjectURL(file));
   };
-
+ 
   const handleRemoveImage = () => {
     setImgFile(null);
     setImgPreview(null);
     if (fileRef.current) fileRef.current.value = '';
   };
-
+ 
   const handleSave = async () => {
-    if (!form.ownerName.trim() || !form.canteenName.trim()) {
-      showToast('Owner name and canteen name are required', 'error');
+    const validationErrors = validate(form);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      showToast('Please fix the errors before saving', 'error');
       return;
     }
+ 
     setSaving(true);
     try {
       const token = localStorage.getItem('token');
       const formData = new FormData();
       Object.entries(form).forEach(([k, v]) => formData.append(k, v));
       if (imgFile) formData.append('image', imgFile);
-
+ 
       const r = await fetch(API, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` },
@@ -92,14 +140,15 @@ export default function CanteenProfile() {
       if (!r.ok) throw new Error(j.message);
       setProfile(j.data);
       setImgFile(null);
-
-      // ✅ Update image preview with actual saved URL
+      setErrors({});
+ 
+      // Update image preview with actual saved URL
       if (j.data.image) setImgPreview(buildImgUrl(j.data.image));
-
+ 
       // Update localStorage name for sidebar
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       localStorage.setItem('user', JSON.stringify({ ...user, canteenName: j.data.canteenName, profileImage: j.data.image }));
-
+ 
       showToast('Profile updated successfully!');
     } catch (err) {
       showToast(err.message || 'Failed to save', 'error');
@@ -107,17 +156,17 @@ export default function CanteenProfile() {
       setSaving(false);
     }
   };
-
+ 
   if (loading) return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 items-center justify-center">
       <Loader2 className="w-8 h-8 animate-spin text-green-500" />
       <p className="text-sm text-gray-400 mt-3">Loading profile...</p>
     </div>
   );
-
+ 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
-
+ 
       {/* Toast */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold flex items-center gap-2 ${
@@ -126,7 +175,7 @@ export default function CanteenProfile() {
           {toast.msg}
         </div>
       )}
-
+ 
       {/* Header */}
       <div className="flex-shrink-0 px-6 py-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
         <div>
@@ -139,16 +188,16 @@ export default function CanteenProfile() {
           {saving ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
-
+ 
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5" style={{ scrollbarWidth: 'none' }}>
         <div className="grid grid-cols-3 gap-5">
-
+ 
           {/* Left — Image upload */}
           <div className="col-span-1 space-y-4">
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-5">
               <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Canteen Image</p>
-
+ 
               <div className="relative group">
                 {imgPreview ? (
                   <div className="relative rounded-xl overflow-hidden aspect-square">
@@ -178,14 +227,14 @@ export default function CanteenProfile() {
                 )}
                 <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden" />
               </div>
-
+ 
               {imgFile && (
                 <p className="text-[11px] text-green-500 font-semibold mt-2 flex items-center gap-1">
                   <CheckCircle className="w-3 h-3" /> New image selected — save to apply
                 </p>
               )}
             </div>
-
+ 
             {/* Quick info card */}
             {profile && (
               <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-5 space-y-3">
@@ -205,11 +254,11 @@ export default function CanteenProfile() {
               </div>
             )}
           </div>
-
+ 
           {/* Right — Form */}
           <div className="col-span-2 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-5 space-y-4">
             <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Canteen Details</p>
-
+ 
             {/* Row 1 */}
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -218,7 +267,12 @@ export default function CanteenProfile() {
                 </label>
                 <input name="ownerName" value={form.ownerName} onChange={handleChange}
                   placeholder="Enter owner name"
-                  className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all" />
+                  className={`w-full px-3 py-2.5 text-sm rounded-xl border ${errors.ownerName ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 dark:border-gray-600 focus:ring-green-400'} bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all`} />
+                {errors.ownerName && (
+                  <p className="text-[10px] text-red-500 mt-1 flex items-center gap-1">
+                    <XCircle className="w-3 h-3" /> {errors.ownerName}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1.5 block">
@@ -226,10 +280,15 @@ export default function CanteenProfile() {
                 </label>
                 <input name="canteenName" value={form.canteenName} onChange={handleChange}
                   placeholder="Enter canteen name"
-                  className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all" />
+                  className={`w-full px-3 py-2.5 text-sm rounded-xl border ${errors.canteenName ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 dark:border-gray-600 focus:ring-green-400'} bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all`} />
+                {errors.canteenName && (
+                  <p className="text-[10px] text-red-500 mt-1 flex items-center gap-1">
+                    <XCircle className="w-3 h-3" /> {errors.canteenName}
+                  </p>
+                )}
               </div>
             </div>
-
+ 
             {/* Row 2 */}
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -238,18 +297,28 @@ export default function CanteenProfile() {
                 </label>
                 <input name="email" value={form.email} onChange={handleChange}
                   placeholder="canteen@email.com" type="email"
-                  className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all" />
+                  className={`w-full px-3 py-2.5 text-sm rounded-xl border ${errors.email ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 dark:border-gray-600 focus:ring-green-400'} bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all`} />
+                {errors.email && (
+                  <p className="text-[10px] text-red-500 mt-1 flex items-center gap-1">
+                    <XCircle className="w-3 h-3" /> {errors.email}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1.5 block">
                   <Phone className="w-3 h-3 inline mr-1" /> Phone
                 </label>
                 <input name="phone" value={form.phone} onChange={handleChange}
-                  placeholder="+94 77 123 4567"
-                  className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all" />
+                  placeholder="0771234567"
+                  className={`w-full px-3 py-2.5 text-sm rounded-xl border ${errors.phone ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 dark:border-gray-600 focus:ring-green-400'} bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all`} />
+                {errors.phone && (
+                  <p className="text-[10px] text-red-500 mt-1 flex items-center gap-1">
+                    <XCircle className="w-3 h-3" /> {errors.phone}
+                  </p>
+                )}
               </div>
             </div>
-
+ 
             {/* Location */}
             <div>
               <label className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1.5 block">
@@ -259,7 +328,7 @@ export default function CanteenProfile() {
                 placeholder="e.g. Block A, Ground Floor, Faculty of Computing"
                 className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all" />
             </div>
-
+ 
             {/* Description */}
             <div>
               <label className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1.5 block">

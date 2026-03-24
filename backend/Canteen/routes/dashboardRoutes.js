@@ -1,3 +1,5 @@
+//backend/Canteen/routes/dashboardRoutes.js
+
 const express = require('express');
  const { getDashboard } = require('../controllers/dashboardController');
  const router = express.Router();

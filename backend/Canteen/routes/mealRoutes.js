@@ -1,3 +1,5 @@
+//backend/Canteen/routes/mealRoutes.js
+
 const express = require('express');
 const { upload, getMeals, addMeal, updateMeal, toggleAvailability, deleteMeal } = require('../controllers/mealController');
 const router = express.Router();

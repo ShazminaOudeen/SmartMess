@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import jsPDF from 'jspdf';
 import logoSrc from '../../assets/logo.png';
+import { authFetch } from '../../utils/authFetch';
 import AdminHeader from './components/AdminHeader';
 import {
   Store, Clock, CheckCircle, XCircle, Eye, FileText,
@@ -22,7 +23,6 @@ const getLogoBase64 = () => new Promise((resolve) => {
   img.src = logoSrc;
 });
 
-// ── PDF Generator ─────────────────────────────────────────────────────────────
 const generatePDF = async (canteens, filterStatus) => {
   const logoBase64 = await getLogoBase64();
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
@@ -30,7 +30,6 @@ const generatePDF = async (canteens, filterStatus) => {
   const H = doc.internal.pageSize.getHeight();
   const now = new Date();
 
-  // Header band
   doc.setFillColor(20, 83, 45);
   doc.rect(0, 0, W, 22, 'F');
   if (logoBase64) doc.addImage(logoBase64, 'PNG', 8, 3, 16, 16);
@@ -40,18 +39,16 @@ const generatePDF = async (canteens, filterStatus) => {
   doc.setFontSize(8); doc.setFont('helvetica', 'normal');
   doc.text(`Generated: ${now.toLocaleString()}   |   Filter: ${filterStatus.toUpperCase()}   |   Total: ${canteens.length}`, W - 14, 14, { align: 'right' });
 
-  
-  // ── Summary boxes ─────────────────────────────────────────────────────────────
   const total    = canteens.length;
   const approved = canteens.filter(c => c.isApproved).length;
   const pending  = canteens.filter(c => !c.isApproved && !c.isRejected).length;
   const rejected = canteens.filter(c => c.isRejected).length;
 
   const boxes = [
-    { label: 'Total', value: total,    color: [99, 102, 241] },
-    { label: 'Approved', value: approved, color: [34, 197, 94] },
+    { label: 'Total',    value: total,    color: [99, 102, 241] },
+    { label: 'Approved', value: approved, color: [34, 197, 94]  },
     { label: 'Pending',  value: pending,  color: [245, 158, 11] },
-    { label: 'Rejected', value: rejected, color: [239, 68, 68] },
+    { label: 'Rejected', value: rejected, color: [239, 68, 68]  },
   ];
   boxes.forEach((b, i) => {
     const x = 14 + i * 65;
@@ -64,30 +61,24 @@ const generatePDF = async (canteens, filterStatus) => {
     doc.text(b.label, x + 30, 43, { align: 'center' });
   });
 
-  // ── Table ──────────────────────────────────────────────────────────────────
   const startY = 52;
-  const cols   = [
-    { header: '#',             width: 10 },
-    { header: 'Canteen Name',  width: 50 },
-    { header: 'Owner',         width: 45 },
-    { header: 'Phone',         width: 35 },
-    { header: 'Docs',          width: 15 },
-    { header: 'Registered',    width: 30 },
-    { header: 'Status',        width: 25 },
+  const cols = [
+    { header: '#',            width: 10 },
+    { header: 'Canteen Name', width: 50 },
+    { header: 'Owner',        width: 45 },
+    { header: 'Phone',        width: 35 },
+    { header: 'Docs',         width: 15 },
+    { header: 'Registered',   width: 30 },
+    { header: 'Status',       width: 25 },
   ];
 
-  // Header row
   let x = 14;
   doc.setFillColor(243, 244, 246);
   doc.rect(14, startY, W - 28, 8, 'F');
   doc.setTextColor(75, 85, 99);
   doc.setFontSize(8); doc.setFont('helvetica', 'bold');
-  cols.forEach(col => {
-    doc.text(col.header, x + 2, startY + 5.5);
-    x += col.width;
-  });
+  cols.forEach(col => { doc.text(col.header, x + 2, startY + 5.5); x += col.width; });
 
-  // Data rows
   doc.setFont('helvetica', 'normal');
   let y = startY + 8;
   canteens.forEach((c, i) => {
@@ -95,46 +86,28 @@ const generatePDF = async (canteens, filterStatus) => {
     if (i % 2 === 0) { doc.setFillColor(249, 250, 251); doc.rect(14, y, W - 28, 8, 'F'); }
     const status = c.isApproved ? 'Approved' : c.isRejected ? 'Rejected' : 'Pending';
     const statusColor = c.isApproved ? [34,197,94] : c.isRejected ? [239,68,68] : [245,158,11];
-    const row = [
-      String(i + 1),
-      c.name || '—',
-      c.ownerName || c.owner?.name || '—',
-      c.phone || '—',
-      String(c.documents?.length || 0),
-      fmtDate(c.createdAt),
-      status,
-    ];
+    const row = [String(i+1), c.name||'—', c.ownerName||c.owner?.name||'—', c.phone||'—', String(c.documents?.length||0), fmtDate(c.createdAt), status];
     x = 14;
-    doc.setTextColor(31, 41, 55);
     doc.setFontSize(7.5);
     cols.forEach((col, ci) => {
-      if (ci === 6) {
-        doc.setTextColor(...statusColor);
-        doc.setFont('helvetica', 'bold');
-      } else {
-        doc.setTextColor(31, 41, 55);
-        doc.setFont('helvetica', 'normal');
-      }
+      if (ci === 6) { doc.setTextColor(...statusColor); doc.setFont('helvetica', 'bold'); }
+      else { doc.setTextColor(31, 41, 55); doc.setFont('helvetica', 'normal'); }
       const text = doc.splitTextToSize(row[ci], col.width - 3);
       doc.text(text[0], x + 2, y + 5.5);
       x += col.width;
     });
-    // bottom border
     doc.setDrawColor(229, 231, 235);
     doc.line(14, y + 8, W - 14, y + 8);
     y += 8;
   });
 
-  // Footer
   doc.setTextColor(156, 163, 175);
   doc.setFontSize(7); doc.setFont('helvetica', 'normal');
   doc.text('SmartMess Admin System — Confidential', 14, H - 5);
-  doc.text(`Page 1`, W - 14, H - 5, { align: 'right' });
-
+  doc.text('Page 1', W - 14, H - 5, { align: 'right' });
   doc.save(`canteen_approvals_${now.toISOString().slice(0,10)}.pdf`);
 };
 
-// ── Stat Card ──────────────────────────────────────────────────────────────────
 const StatCard = ({ icon: Icon, label, value, color, loading }) => (
   <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 p-5 flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
     <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${color}`}>
@@ -158,7 +131,6 @@ const StatusBadge = ({ status }) => {
   return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${map[status] || map.pending}`}>{status}</span>;
 };
 
-// ── Document Viewer Modal ─────────────────────────────────────────────────────
 const DocModal = ({ doc, onClose }) => {
   if (!doc) return null;
   const isPdf = doc.url?.toLowerCase().endsWith('.pdf') || doc.type === 'application/pdf';
@@ -182,22 +154,18 @@ const DocModal = ({ doc, onClose }) => {
           </div>
         </div>
         <div className="flex-1 overflow-auto" style={{ scrollbarWidth: 'none' }}>
-          {isPdf
-            ? <iframe src={doc.url} className="w-full h-full min-h-[60vh]" title="PDF Viewer" />
-            : <img src={doc.url} alt={doc.name} className="w-full h-auto object-contain p-4" />
-          }
+          {isPdf ? <iframe src={doc.url} className="w-full h-full min-h-[60vh]" title="PDF Viewer" />
+                 : <img src={doc.url} alt={doc.name} className="w-full h-auto object-contain p-4" />}
         </div>
       </div>
     </div>
   );
 };
 
-// ── Detail Modal ──────────────────────────────────────────────────────────────
 const DetailModal = ({ canteen, onClose, onApprove, onReject, actionLoading }) => {
   const [activeDoc, setActiveDoc] = useState(null);
   if (!canteen) return null;
   const status = canteen.isApproved ? 'approved' : canteen.isRejected ? 'rejected' : 'pending';
-
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
@@ -212,12 +180,12 @@ const DetailModal = ({ canteen, onClose, onApprove, onReject, actionLoading }) =
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4" style={{ scrollbarWidth: 'none' }}>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { icon: User, label: 'Owner', value: canteen.ownerName || canteen.owner?.name || '—' },
-              { icon: Mail, label: 'Email', value: canteen.ownerEmail || canteen.owner?.email || '—' },
-              { icon: Phone, label: 'Phone', value: canteen.phone || '—' },
-              { icon: MapPin, label: 'Location', value: canteen.location || canteen.address || '—' },
-              { icon: Calendar, label: 'Registered', value: fmtDate(canteen.createdAt) },
-              { icon: AlertCircle, label: 'Status', value: <StatusBadge status={status} /> },
+              { icon: User,        label: 'Owner',      value: canteen.ownerName || canteen.owner?.name || '—' },
+              { icon: Mail,        label: 'Email',      value: canteen.ownerEmail || canteen.owner?.email || '—' },
+              { icon: Phone,       label: 'Phone',      value: canteen.phone || '—' },
+              { icon: MapPin,      label: 'Location',   value: canteen.location || canteen.address || '—' },
+              { icon: Calendar,    label: 'Registered', value: fmtDate(canteen.createdAt) },
+              { icon: AlertCircle, label: 'Status',     value: <StatusBadge status={status} /> },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
                 <div className="flex items-center gap-2 mb-1"><Icon className="w-3.5 h-3.5 text-gray-400" /><span className="text-[10px] font-bold uppercase tracking-wide text-gray-400">{label}</span></div>
@@ -268,10 +236,9 @@ const DetailModal = ({ canteen, onClose, onApprove, onReject, actionLoading }) =
   );
 };
 
-// ── Main ─────────────────────────────────────────────────────────────────────
 const CanteenApprovals = () => {
   const [canteens, setCanteens]           = useState([]);
-  const [allCanteens, setAllCanteens]     = useState([]); // unfiltered for PDF
+  const [allCanteens, setAllCanteens]     = useState([]);
   const [stats, setStats]                 = useState({ total: 0, approved: 0, pending: 0 });
   const [loading, setLoading]             = useState(true);
   const [statsLoading, setStatsLoading]   = useState(true);
@@ -288,14 +255,20 @@ const CanteenApprovals = () => {
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
-    try { const r = await fetch('/api/admin/canteens/stats'); const j = await r.json(); if (j.success) setStats(j.data); } catch {}
+    try {
+      // ✅ authFetch
+      const r = await authFetch('/api/admin/canteens/stats');
+      const j = await r.json();
+      if (j.success) setStats(j.data);
+    } catch {}
     finally { setStatsLoading(false); }
   }, []);
 
   const fetchCanteens = useCallback(async (status = 'pending') => {
     setLoading(true);
     try {
-      const r = await fetch(`/api/admin/canteens?status=${status}`);
+      // ✅ authFetch
+      const r = await authFetch(`/api/admin/canteens?status=${status}`);
       const j = await r.json();
       if (j.success) { setAllCanteens(j.data); setCanteens(j.data); }
     } catch {}
@@ -304,7 +277,6 @@ const CanteenApprovals = () => {
 
   useEffect(() => { fetchStats(); fetchCanteens('pending'); }, []);
 
-  // Apply search filter on top of API filter
   useEffect(() => {
     if (!search.trim()) { setCanteens(allCanteens); return; }
     const q = search.toLowerCase();
@@ -319,8 +291,8 @@ const CanteenApprovals = () => {
   const handleApprove = async (id) => {
     setActionLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const r = await fetch(`/api/admin/canteens/${id}/approve`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      // ✅ authFetch
+      const r = await authFetch(`/api/admin/canteens/${id}/approve`, { method: 'PUT' });
       const j = await r.json();
       if (!r.ok) throw new Error(j.message);
       showToast('Canteen approved!'); setSelected(null); fetchCanteens(filterStatus); fetchStats();
@@ -332,8 +304,11 @@ const CanteenApprovals = () => {
     if (!rejectReason.trim()) return;
     setActionLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const r = await fetch(`/api/admin/canteens/${rejectModal}/reject`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ reason: rejectReason }) });
+      // ✅ authFetch
+      const r = await authFetch(`/api/admin/canteens/${rejectModal}/reject`, {
+        method: 'PUT',
+        body: JSON.stringify({ reason: rejectReason }),
+      });
       const j = await r.json();
       if (!r.ok) throw new Error(j.message);
       showToast('Canteen rejected'); setRejectModal(null); setRejectReason(''); setSelected(null); fetchCanteens(filterStatus); fetchStats();
@@ -367,22 +342,18 @@ const CanteenApprovals = () => {
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4" style={{ scrollbarWidth: 'none' }}>
         <style>{`*::-webkit-scrollbar{display:none}`}</style>
 
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
           <StatCard icon={Store}       label="Total Canteens"   value={stats.total}    color="bg-indigo-500"  loading={statsLoading} />
           <StatCard icon={CheckCircle} label="Approved"         value={stats.approved} color="bg-primary-500" loading={statsLoading} />
           <StatCard icon={Clock}       label="Pending Approval" value={stats.pending}  color="bg-amber-500"   loading={statsLoading} />
         </div>
 
-        {/* Search + Filter + PDF export bar */}
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Search */}
           <div className="relative flex-1 min-w-48">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by canteen or owner name..."
               className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-all" />
           </div>
-          {/* Status filters */}
           <div className="flex items-center gap-2">
             <Filter className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
             {FILTERS.map(f => (
@@ -392,7 +363,6 @@ const CanteenApprovals = () => {
               </button>
             ))}
           </div>
-          {/* PDF export */}
           <button onClick={handleExportPDF} disabled={pdfLoading || canteens.length === 0}
             className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white disabled:opacity-50 transition-colors shadow-sm">
             {pdfLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
@@ -400,10 +370,8 @@ const CanteenApprovals = () => {
           </button>
         </div>
 
-        {/* Results count */}
         {search && <p className="text-xs text-gray-400 dark:text-gray-500">{canteens.length} result{canteens.length !== 1 ? 's' : ''} for "<span className="font-semibold text-gray-600 dark:text-gray-300">{search}</span>"</p>}
 
-        {/* Cards grid */}
         {loading ? (
           <div className="grid grid-cols-2 gap-4">
             {[1,2,3,4].map(i => (

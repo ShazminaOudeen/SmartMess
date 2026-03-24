@@ -13,13 +13,12 @@ import {
     MdRestaurant,
     MdVisibility,
     MdVisibilityOff,
+    MdUploadFile,
 } from 'react-icons/md';
 import { BiFoodMenu } from 'react-icons/bi';
-import { useAuth } from '../../context/AuthContext';
 
 export default function CanteenRegister() {
     const navigate = useNavigate();
-    const { register } = useAuth();
     const { theme } = useTheme();
     const dark = theme === 'dark';
 
@@ -36,6 +35,7 @@ export default function CanteenRegister() {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [document, setDocument] = useState(null);
 
     const borderColor = '#06b6d4';
     const glowColor = 'rgba(6,182,212,0.3)';
@@ -52,6 +52,10 @@ export default function CanteenRegister() {
             toast.error('Please fill in all required fields');
             return;
         }
+        if (!document) {
+            toast.error('Please upload your registration document');
+            return;
+        }
         if (formData.password !== formData.confirmPassword) {
             toast.error('Passwords do not match');
             return;
@@ -63,23 +67,31 @@ export default function CanteenRegister() {
 
         setIsLoading(true);
         try {
-            const result = await register({
-                name: formData.name,
-                email: formData.email,
-                password: formData.password,
-                role: 'canteen',
-                phone: formData.phone,
-                canteenName: formData.canteenName,
-                location: formData.location,
-                licenseNumber: formData.licenseNumber,
+            const fd = new FormData();
+            fd.append('name', formData.name);
+            fd.append('email', formData.email);
+            fd.append('password', formData.password);
+            fd.append('role', 'canteen');
+            fd.append('phone', formData.phone);
+            fd.append('canteenName', formData.canteenName);
+            fd.append('location', formData.location);
+            fd.append('licenseNumber', formData.licenseNumber);
+            fd.append('document', document);
+
+            const res = await fetch('/api/auth/register', {
+                method: 'POST',
+                body: fd, // no Content-Type header — browser sets it with boundary
             });
+            const result = await res.json();
+
             if (result.success) {
-                toast.success('Registration successful! Please login.');
-                setTimeout(() => navigate('/login/canteen'), 1500);
+                toast.success('Registration submitted! Awaiting admin approval.');
+                setTimeout(() => navigate('/login/canteen'), 2000);
+            } else {
+                toast.error(result.message || 'Registration failed');
             }
         } catch (error) {
-            const msg = error.response?.data?.message || 'Registration failed. Please try again.';
-            toast.error(msg);
+            toast.error('Registration failed. Please try again.');
         } finally {
             setIsLoading(false);
         }
@@ -134,10 +146,7 @@ export default function CanteenRegister() {
                         boxShadow: `0 24px 60px ${glowColor}, 0 0 0 1px ${borderColor}11`,
                     }}
                 >
-                    {/* Background Icon */}
                     <BiFoodMenu className="absolute -right-6 -bottom-6 w-28 h-28 opacity-5 dark:opacity-10 transform rotate-12" />
-
-                    {/* Corner accent */}
                     <div className="absolute top-0 right-0 w-32 h-32 rounded-bl-full opacity-30" style={{ background: accentLight }} />
 
                     {/* Header */}
@@ -217,6 +226,42 @@ export default function CanteenRegister() {
                         {inputField(<MdBadge className="w-5 h-5" />, 'licenseNumber', 'Business License No.', 'text', 'Enter license number', false)}
                         {inputField(<MdPhone className="w-5 h-5" />, 'phone', 'Contact Number', 'tel', '+94 77 XXX XXXX', false)}
 
+                        <div className="h-px bg-gray-200 dark:bg-gray-700" />
+                        <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Verification Document</p>
+
+                        {/* Document Upload */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                Registration Document <span className="text-red-400">*</span>
+                                <span className="text-xs font-normal text-gray-400 ml-1">(PDF, JPG, PNG — max 5MB)</span>
+                            </label>
+                            <label
+                                className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 ${
+                                    document
+                                        ? 'border-cyan-400 bg-cyan-50 dark:bg-cyan-900/10'
+                                        : 'border-gray-200 dark:border-gray-600 hover:border-cyan-400 hover:bg-cyan-50/50 dark:hover:bg-cyan-900/5'
+                                }`}
+                            >
+                                <MdUploadFile className={`w-6 h-6 flex-shrink-0 ${document ? 'text-cyan-500' : 'text-gray-400'}`} />
+                                <div className="flex-1 min-w-0">
+                                    {document ? (
+                                        <p className="text-sm font-semibold text-cyan-600 dark:text-cyan-400 truncate">{document.name}</p>
+                                    ) : (
+                                        <p className="text-sm text-gray-400">Click to upload or drag and drop</p>
+                                    )}
+                                </div>
+                                <input
+                                    type="file"
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    onChange={(e) => setDocument(e.target.files[0])}
+                                    className="hidden"
+                                />
+                            </label>
+                            <p className="text-xs text-gray-400 mt-1">
+                                Upload your business registration certificate or license document
+                            </p>
+                        </div>
+
                         {/* Submit */}
                         <button
                             type="submit"
@@ -230,10 +275,10 @@ export default function CanteenRegister() {
                             {isLoading ? (
                                 <>
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    Registering Canteen...
+                                    Submitting Registration...
                                 </>
                             ) : (
-                                'Register Canteen'
+                                'Submit Registration'
                             )}
                         </button>
                     </form>
