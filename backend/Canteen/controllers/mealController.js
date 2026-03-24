@@ -6,7 +6,13 @@ const path     = require('path');
 const fs       = require('fs');
 const Meal     = require('../../models/Meal');
 
-const TEMP_CANTEEN_ID = '69aac230df75a9778e441db5'; // replace with auth later
+// ── Helper: get canteen _id from logged-in user ───────────────────────────────
+const getCanteenId = async (userId) => {
+  const canteen = await mongoose.connection.db.collection('canteens').findOne({
+    owner: new mongoose.Types.ObjectId(userId),
+  });
+  return canteen?._id || null;
+};
 
 // ── Multer ────────────────────────────────────────────────────────────────────
 const storage = multer.diskStorage({
@@ -29,7 +35,10 @@ const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024
 // ── GET /api/canteen/meals ────────────────────────────────────────────────────
 const getMeals = async (req, res) => {
   try {
-    const meals = await Meal.find({ canteen: TEMP_CANTEEN_ID }).sort({ createdAt: -1 });
+    const canteenId = await getCanteenId(req.user._id);
+    if (!canteenId) return res.status(404).json({ success: false, message: 'Canteen not found' });
+
+    const meals = await Meal.find({ canteen: canteenId.toString() }).sort({ createdAt: -1 });
     res.json({ success: true, data: meals });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -39,12 +48,15 @@ const getMeals = async (req, res) => {
 // ── POST /api/canteen/meals ───────────────────────────────────────────────────
 const addMeal = async (req, res) => {
   try {
+    const canteenId = await getCanteenId(req.user._id);
+    if (!canteenId) return res.status(404).json({ success: false, message: 'Canteen not found' });
+
     const { name, description, category, basePrice, isAvailable, sizes } = req.body;
     if (!name || !basePrice) {
       return res.status(400).json({ success: false, message: 'Name and base price are required' });
     }
     const meal = await Meal.create({
-      canteen:     TEMP_CANTEEN_ID,
+      canteen:     canteenId.toString(),
       name:        name.trim(),
       description: description?.trim() || '',
       category:    category || 'Other',
@@ -74,11 +86,7 @@ const updateMeal = async (req, res) => {
     };
     if (req.file) updateData.image = `/uploads/meals/${req.file.filename}`;
 
-    const meal = await Meal.findByIdAndUpdate(
-      req.params.id,
-      { $set: updateData },
-      { new: true }
-    );
+    const meal = await Meal.findByIdAndUpdate(req.params.id, { $set: updateData }, { new: true });
     if (!meal) return res.status(404).json({ success: false, message: 'Meal not found' });
     res.json({ success: true, message: 'Meal updated', data: meal });
   } catch (err) {

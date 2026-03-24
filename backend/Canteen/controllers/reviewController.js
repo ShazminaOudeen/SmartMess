@@ -1,40 +1,44 @@
-//backend/Canteen/controllers/reviewController.js
-
+// backend/Canteen/controllers/reviewController.js
 const mongoose = require('mongoose');
+const Rating = require('../../models/Rating');
 
-const TEMP_CANTEEN_ID = '69aac230df75a9778e441db5';
+const getCanteenId = async (userId) => {
+  const canteen = await mongoose.connection.db.collection('canteens').findOne({
+    owner: new mongoose.Types.ObjectId(userId),
+  });
+  return canteen?._id || null;
+};
 
-const getCollection = () => mongoose.connection.db.collection('feedbacks');
-
-// ── GET /api/canteen/reviews ──────────────────────────────────────────────────
+// GET /api/canteen/reviews
 const getReviews = async (req, res) => {
   try {
-    const reviews = await getCollection()
-      .find({ canteenId: new mongoose.Types.ObjectId(TEMP_CANTEEN_ID) })
-      .sort({ createdAt: -1 })
-      .toArray();
+    const canteenId = await getCanteenId(req.user._id);
+    if (!canteenId) return res.status(404).json({ success: false, message: 'Canteen not found' });
+
+    const reviews = await Rating.find({ canteen: canteenId })
+      .sort({ createdAt: -1 });
+
     res.json({ success: true, data: reviews });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// ── PATCH /api/canteen/reviews/:id/reply ──────────────────────────────────────
+// PATCH /api/canteen/reviews/:id/reply
 const replyToReview = async (req, res) => {
   try {
     const { reply } = req.body;
-    if (!reply?.trim()) {
+    if (!reply?.trim())
       return res.status(400).json({ success: false, message: 'Reply cannot be empty' });
-    }
 
-    const result = await getCollection().findOneAndUpdate(
-      { _id: new mongoose.Types.ObjectId(req.params.id) },
+    const updated = await Rating.findByIdAndUpdate(
+      req.params.id,
       { $set: { reply: reply.trim(), repliedAt: new Date() } },
-      { returnDocument: 'after' }
+      { new: true }
     );
+    if (!updated) return res.status(404).json({ success: false, message: 'Review not found' });
 
-    if (!result) return res.status(404).json({ success: false, message: 'Review not found' });
-    res.json({ success: true, message: 'Reply sent', data: result });
+    res.json({ success: true, message: 'Reply sent', data: updated });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

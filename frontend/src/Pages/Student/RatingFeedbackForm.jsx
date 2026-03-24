@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Star, ArrowLeft, CheckCircle, AlertCircle, Utensils } from "lucide-react";
 import { trackingAPI } from "../../api/studentApi";
 
-const TEMP_STUDENT_ID = "64f1a2b3c4d5e6f7a8b9c0d1";
+// ❌ Remove this line - TEMP_STUDENT_ID removed
 
 const QUICK_TAGS = [
   "Delicious", "Good Portion", "Fast Service", "Value for Money",
@@ -23,6 +23,9 @@ export default function RatingFeedbackForm() {
   const [submitted, setSubmitted]   = useState(false);
   const [error, setError]           = useState("");
 
+  // ✅ Get studentId from localStorage
+  const studentId = localStorage.getItem('userId');
+
   useEffect(() => {
     trackingAPI.trackStatus(orderId).then((res) => {
       if (res.success) setOrder(res.data);
@@ -36,12 +39,13 @@ export default function RatingFeedbackForm() {
     );
   };
 
+  // ✅ Updated handleSubmit with studentId
   const handleSubmit = async () => {
     if (rating === 0) { setError("Please select a rating"); return; }
     setSubmitting(true);
     setError("");
     const res = await trackingAPI.submitRating({
-      studentId: TEMP_STUDENT_ID,
+      studentId,   // ✅ Was TEMP_STUDENT_ID
       orderId,
       canteenId,
       rating,
