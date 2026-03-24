@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const Rating = require('../models/Rating');
 
@@ -36,7 +37,7 @@ const getMonthlyExpenses = async (req, res) => {
     const expenses = await Order.aggregate([
       {
         $match: {
-          student: require('mongoose').Types.ObjectId.createFromHexString(studentId),
+          student: mongoose.Types.ObjectId.createFromHexString(studentId),
           paymentStatus: 'paid',
           status: { $ne: 'cancelled' },
           createdAt: {
@@ -55,10 +56,13 @@ const getMonthlyExpenses = async (req, res) => {
       { $sort: { _id: 1 } },
     ]);
 
-    // Fill all 12 months
     const months = Array.from({ length: 12 }, (_, i) => {
       const found = expenses.find(e => e._id === i + 1);
-      return { month: i + 1, totalSpent: found ? found.totalSpent : 0, orderCount: found ? found.orderCount : 0 };
+      return {
+        month: i + 1,
+        totalSpent: found ? found.totalSpent : 0,
+        orderCount: found ? found.orderCount : 0,
+      };
     });
 
     res.status(200).json({ success: true, data: months });
@@ -70,15 +74,32 @@ const getMonthlyExpenses = async (req, res) => {
 // Submit rating & feedback
 const submitRating = async (req, res) => {
   try {
-    const { studentId, canteenId, orderId, rating, feedback } = req.body;
+    const { studentId, canteenId, orderId, rating, feedback, tags } = req.body;
 
+    // Prevent duplicate ratings
     const existingRating = await Rating.findOne({ student: studentId, order: orderId });
     if (existingRating) {
       return res.status(400).json({ success: false, message: 'You already rated this order' });
     }
 
-    const newRating = new Rating({ student: studentId, canteen: canteenId, order: orderId, rating, feedback });
-    await newRating.save();
+    // Fetch student name
+    const student = await mongoose.connection.db.collection('users')
+      .findOne({ _id: new mongoose.Types.ObjectId(studentId) });
+
+    // Fetch order to get meal names
+    const order = await Order.findById(orderId).populate('items.meal', 'name');
+    const mealName = order?.items?.map(i => i.meal?.name || i.name).filter(Boolean).join(', ') || '';
+
+    const newRating = await Rating.create({
+      student:     studentId,
+      studentName: student?.name || 'Anonymous',
+      canteen:     canteenId,
+      order:       orderId,
+      mealName,
+      rating,
+      comment:     feedback,   // 'feedback' from frontend → 'comment' in DB
+      tags:        tags || [],
+    });
 
     res.status(201).json({ success: true, data: newRating });
   } catch (error) {

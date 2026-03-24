@@ -3,13 +3,19 @@
 const mongoose = require('mongoose');
 const Meal     = require('../../models/Meal');
 
-const TEMP_CANTEEN_ID = '69aac230df75a9778e441db5';
-
 const getOrders = () => mongoose.connection.db.collection('orders');
 
 const getDashboard = async (req, res) => {
   try {
-    const canteenObjId = new mongoose.Types.ObjectId(TEMP_CANTEEN_ID);
+    const canteen = await mongoose.connection.db.collection('canteens').findOne({
+      owner: new mongoose.Types.ObjectId(req.user._id),
+    });
+
+    if (!canteen) {
+      return res.status(404).json({ success: false, message: 'Canteen not found for this user' });
+    }
+
+    const canteenObjId = canteen._id;
 
     // Today's date range
     const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
@@ -17,24 +23,24 @@ const getDashboard = async (req, res) => {
 
     // ── Today's orders ────────────────────────────────────────────────────────
     const todayOrders = await getOrders().countDocuments({
-      canteenId: canteenObjId,
+      canteen: canteenObjId,           // ✅ FIXED: was canteenId
       createdAt: { $gte: startOfDay, $lte: endOfDay },
     });
 
     // ── Pending orders ────────────────────────────────────────────────────────
     const pendingOrders = await getOrders().countDocuments({
-      canteenId: canteenObjId,
+      canteen: canteenObjId,           // ✅ FIXED: was canteenId
       status: 'pending',
     });
 
     // ── Total meals ───────────────────────────────────────────────────────────
-    const totalMeals = await Meal.countDocuments({ canteen: TEMP_CANTEEN_ID });
+    const totalMeals = await Meal.countDocuments({ canteen: canteenObjId.toString() });
 
     // ── Today's revenue (completed orders today) ──────────────────────────────
     const todayRevenueResult = await getOrders().aggregate([
       {
         $match: {
-          canteenId: canteenObjId,
+          canteen: canteenObjId,       // ✅ FIXED: was canteenId
           status:    'completed',
           createdAt: { $gte: startOfDay, $lte: endOfDay },
         },
@@ -45,14 +51,14 @@ const getDashboard = async (req, res) => {
 
     // ── Order status breakdown (all time) ─────────────────────────────────────
     const orderStatusBreakdown = await getOrders().aggregate([
-      { $match: { canteenId: canteenObjId } },
+      { $match: { canteen: canteenObjId } },   // ✅ FIXED: was canteenId
       { $group: { _id: '$status', count: { $sum: 1 } } },
     ]).toArray();
 
     // ── Popular meals (from completed orders) ─────────────────────────────────
     const completedOrders = await getOrders().find({
-      canteenId: canteenObjId,
-      status:    'completed',
+      canteen: canteenObjId,           // ✅ FIXED: was canteenId
+      status:  'completed',
     }).toArray();
 
     const mealMap = {};

@@ -1,19 +1,41 @@
 //frontend/src/pages/Canteen/OperatingHours.jsx
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { Clock, Save, CheckCircle, XCircle, Loader2, ToggleLeft, ToggleRight } from 'lucide-react';
 
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
 const DEFAULT_HOURS = DAYS.map(day => ({
   day,
-  isOpen: !['Saturday','Sunday'].includes(day),
+  isOpen:    !['Saturday','Sunday'].includes(day),
   openTime:  '08:00',
   closeTime: '17:00',
 }));
 
+// ── Always returns a safe array of 7 day objects ──────────────────────────────
+const parseHours = (raw) => {
+  try {
+    let data = raw;
+    // If string, parse it
+    if (typeof data === 'string') data = JSON.parse(data);
+    // Must be a non-empty array
+    if (!Array.isArray(data) || data.length === 0) return DEFAULT_HOURS;
+    // Ensure every item has the required fields
+    return data.map(d => ({
+      day:       typeof d.day === 'string' ? d.day : '',
+      isOpen:    typeof d.isOpen === 'boolean' ? d.isOpen : false,
+      openTime:  d.openTime  || '08:00',
+      closeTime: d.closeTime || '17:00',
+    }));
+  } catch {
+    return DEFAULT_HOURS;
+  }
+};
+
 export default function OperatingHours() {
-  const [hours, setHours]   = useState(DEFAULT_HOURS);
+  const { token } = useAuth();
+  const [hours, setHours]     = useState(DEFAULT_HOURS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving]   = useState(false);
   const [toast, setToast]     = useState(null);
@@ -24,20 +46,25 @@ export default function OperatingHours() {
   };
 
   useEffect(() => {
-    const fetch_ = async () => {
+    const fetchHours = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem('token');
         const r = await fetch('/api/canteen/hours', {
           headers: { Authorization: `Bearer ${token}` },
         });
         const j = await r.json();
-        if (j.success && j.data?.length) setHours(j.data);
-      } catch {}
-      finally { setLoading(false); }
+        if (j.success) {
+          setHours(parseHours(j.data));
+        }
+      } catch (err) {
+        console.error('Failed to load hours:', err);
+        setHours(DEFAULT_HOURS);
+      } finally {
+        setLoading(false);
+      }
     };
-    fetch_();
-  }, []);
+    if (token) fetchHours();
+  }, [token]);
 
   const toggle = (idx) =>
     setHours(h => h.map((d, i) => i === idx ? { ...d, isOpen: !d.isOpen } : d));
@@ -55,11 +82,10 @@ export default function OperatingHours() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const token = localStorage.getItem('token');
       const r = await fetch('/api/canteen/hours', {
-        method: 'PUT',
+        method:  'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ hours }),
+        body:    JSON.stringify({ hours }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.message);
@@ -78,7 +104,7 @@ export default function OperatingHours() {
     </div>
   );
 
-  const openDays  = hours.filter(d => d.isOpen).length;
+  const openDays   = hours.filter(d => d.isOpen).length;
   const closedDays = 7 - openDays;
 
   return (
@@ -152,12 +178,11 @@ export default function OperatingHours() {
 
             <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
               {hours.map((day, idx) => (
-                <div key={day.day}
+                <div key={day.day || idx}
                   className={`grid grid-cols-12 gap-3 px-5 py-3.5 items-center transition-colors ${
                     !day.isOpen ? 'opacity-50' : ''
                   }`}>
 
-                  {/* Day name */}
                   <div className="col-span-3">
                     <p className={`text-sm font-bold ${
                       ['Saturday','Sunday'].includes(day.day)
@@ -169,7 +194,6 @@ export default function OperatingHours() {
                     </p>
                   </div>
 
-                  {/* Status badge */}
                   <div className="col-span-2">
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                       day.isOpen
@@ -181,23 +205,20 @@ export default function OperatingHours() {
                     </span>
                   </div>
 
-                  {/* Open time */}
                   <div className="col-span-3">
-                    <input type="time" value={day.openTime}
+                    <input type="time" value={day.openTime || '08:00'}
                       disabled={!day.isOpen}
                       onChange={e => setTime(idx, 'openTime', e.target.value)}
                       className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-400 disabled:cursor-not-allowed transition-all" />
                   </div>
 
-                  {/* Close time */}
                   <div className="col-span-3">
-                    <input type="time" value={day.closeTime}
+                    <input type="time" value={day.closeTime || '17:00'}
                       disabled={!day.isOpen}
                       onChange={e => setTime(idx, 'closeTime', e.target.value)}
                       className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-400 disabled:cursor-not-allowed transition-all" />
                   </div>
 
-                  {/* Toggle */}
                   <div className="col-span-1 flex justify-end">
                     <button onClick={() => toggle(idx)}
                       className={`transition-colors ${day.isOpen ? 'text-green-500' : 'text-gray-300 dark:text-gray-600'}`}>
