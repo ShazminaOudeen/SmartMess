@@ -222,10 +222,19 @@ const Analytics = () => {
   const [pdfLoading, setPdfLoading]     = useState(false);
   const [csvLoading, setCsvLoading]     = useState(false);
 
+  // ── Auth helper ─────────────────────────────────────────────────────────────
+  const authHeaders = () => {
+    const token = localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  // ── Fetch canteen analytics ─────────────────────────────────────────────────
   const fetchAnalytics = useCallback(async (m, y) => {
     setLoading(true);
     try {
-      const r = await fetch(`/api/admin/analytics/canteens?month=${m}&year=${y}`);
+      const r = await fetch(`/api/admin/analytics/canteens?month=${m}&year=${y}`, {
+        headers: authHeaders(),
+      });
       const j = await r.json();
       if (j.success) {
         setAllCanteens(j.data);
@@ -236,10 +245,13 @@ const Analytics = () => {
     finally { setLoading(false); }
   }, []);
 
+  // ── Fetch monthly trend ─────────────────────────────────────────────────────
   const fetchChart = useCallback(async (y) => {
     setChartLoading(true);
     try {
-      const r = await fetch(`/api/admin/analytics/monthly-trend?year=${y}`);
+      const r = await fetch(`/api/admin/analytics/monthly-trend?year=${y}`, {
+        headers: authHeaders(),
+      });
       const j = await r.json();
       if (j.success) setChartData(j.data);
     } catch {}
