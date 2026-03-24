@@ -1,5 +1,30 @@
 const jwt = require('jsonwebtoken');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const User = require('../models/User');
+
+// ── Multer setup for registration documents ───────────────────────────────────
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = 'uploads/documents';
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        cb(null, `doc-${Date.now()}${path.extname(file.originalname)}`);
+    },
+});
+const uploadDoc = multer({
+    storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    fileFilter: (req, file, cb) => {
+        const allowed = ['.pdf', '.jpg', '.jpeg', '.png'];
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (allowed.includes(ext)) cb(null, true);
+        else cb(new Error('Only PDF, JPG, and PNG files are allowed'));
+    },
+});
 
 // Generate JWT token
 const generateToken = (id) => {
@@ -40,6 +65,14 @@ const register = async (req, res) => {
             });
         }
 
+        // Canteen must upload a registration document
+        if (role === 'canteen' && !req.file) {
+            return res.status(400).json({
+                success: false,
+                message: 'Registration document is required for canteen registration',
+            });
+        }
+
         // Create user object
         const userData = { name, email, password, role, phone };
 
@@ -57,11 +90,21 @@ const register = async (req, res) => {
             userData.canteenName = canteenName;
             userData.location = location || '';
             userData.licenseNumber = licenseNumber || '';
+            userData.registrationDocument = '/' + req.file.path.replace(/\\/g, '/');
+            
         }
 
         const user = await User.create(userData);
-        const token = generateToken(user._id);
 
+        // Don't return token for canteen — they must wait for approval
+        if (role === 'canteen') {
+            return res.status(201).json({
+                success: true,
+                message: 'Registration submitted! Awaiting admin approval.',
+            });
+        }
+
+        const token = generateToken(user._id);
         res.status(201).json({
             success: true,
             message: 'Registration successful',
@@ -69,14 +112,12 @@ const register = async (req, res) => {
             user,
         });
     } catch (error) {
-        // Handle mongoose duplicate key error
         if (error.code === 11000) {
             return res.status(400).json({
                 success: false,
                 message: 'An account with this email already exists',
             });
         }
-        // Handle mongoose validation error
         if (error.name === 'ValidationError') {
             const messages = Object.values(error.errors).map((e) => e.message);
             return res.status(400).json({
@@ -114,6 +155,22 @@ const login = async (req, res) => {
             return res.status(401).json({
                 success: false,
                 message: 'Invalid email or password for this role',
+            });
+        }
+
+        // Block pending canteens
+        if (user.role === 'canteen' && user.status === 'pending') {
+            return res.status(403).json({
+                success: false,
+                message: 'Your canteen registration is pending admin approval.',
+            });
+        }
+
+        // Block rejected canteens
+        if (user.role === 'canteen' && user.status === 'rejected') {
+            return res.status(403).json({
+                success: false,
+                message: `Your canteen registration was rejected. Reason: ${user.rejectionReason || 'Contact admin.'}`,
             });
         }
 
@@ -186,7 +243,6 @@ const updateProfile = async (req, res) => {
             });
         }
 
-        // Fields that can be updated
         const { name, phone, university, studentId, canteenName, location, licenseNumber } = req.body;
 
         if (name) user.name = name;
@@ -268,4 +324,5 @@ module.exports = {
     getProfile,
     updateProfile,
     changePassword,
+    uploadDoc,
 };

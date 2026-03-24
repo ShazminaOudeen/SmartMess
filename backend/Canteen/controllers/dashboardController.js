@@ -1,3 +1,5 @@
+//backend/Canteen/controllers/dashboardController.js
+
 const mongoose = require('mongoose');
 const Meal     = require('../../models/Meal');
 

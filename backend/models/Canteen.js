@@ -1,3 +1,5 @@
+//backend/Canteen/models/Canteen.js
+
 const mongoose = require('mongoose');
 
 const operatingHourSchema = new mongoose.Schema({
@@ -14,6 +16,7 @@ const canteenSchema = new mongoose.Schema({
 
   // Canteen info
   canteenName:        { type: String, required: true },
+  name:        { type: String },
   email:       { type: String },
   phone:       { type: String },
   location:    { type: String },

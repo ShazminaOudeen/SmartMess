@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from "../../../context/ThemeContext";
 import logo from "../../../assets/logo.png";
 import {
@@ -39,8 +40,8 @@ export default function CanteenSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [openGroups, setOpenGroups] = useState({ "my-canteen": true });
 
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const canteen = { name: user.canteenName || user.name || 'My Canteen', image: user.profileImage || null };
+  const { user, logout } = useAuth();
+const canteen = { name: user?.canteenName || user?.name || 'My Canteen', image: user?.profileImage || null };
 
   const getActive = () => {
     const p = location.pathname;
@@ -205,7 +206,7 @@ export default function CanteenSidebar() {
           {!collapsed && <span className="text-sm font-medium">{dark ? "Light Mode" : "Dark Mode"}</span>}
         </button>
 
-        <button onClick={() => navigate("/")} title="Logout"
+       <button onClick={() => { logout(); navigate("/"); }} title="Logout"
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
             dark ? "text-gray-400 hover:bg-red-500/10 hover:text-red-400"
                  : "text-gray-500 hover:bg-red-50 hover:text-red-600"
