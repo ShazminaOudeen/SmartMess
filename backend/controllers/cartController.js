@@ -8,6 +8,14 @@ const getCart = async (req, res) => {
       .populate('items.meal')
       .populate('canteen');
     if (!cart) return res.status(200).json({ success: true, data: null });
+
+    // Fix any items with 0 price using populated meal's basePrice
+    cart.items.forEach(item => {
+      if (!item.price || item.price === 0) {
+        item.price = item.meal?.basePrice || item.meal?.price || 0;
+      }
+    });
+
     res.status(200).json({ success: true, data: cart });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -22,12 +30,10 @@ const addToCart = async (req, res) => {
     if (!meal) return res.status(404).json({ success: false, message: 'Meal not found' });
     if (meal.isAvailable === false) return res.status(400).json({ success: false, message: 'Meal not available' });
 
-    // Use basePrice since Aathika's meal model uses basePrice
     const mealPrice = meal.basePrice || meal.price || 0;
 
     let cart = await Cart.findOne({ student: studentId });
 
-    // If cart exists but for different canteen, clear it
     if (cart && cart.canteen.toString() !== meal.canteen.toString()) {
       cart.items = [];
       cart.canteen = meal.canteen;
@@ -41,6 +47,9 @@ const addToCart = async (req, res) => {
     const existingItem = cart.items.find(item => item.meal.toString() === mealId);
     if (existingItem) {
       existingItem.quantity += quantity || 1;
+      if (!existingItem.price || existingItem.price === 0) {
+        existingItem.price = mealPrice;
+      }
     } else {
       cart.items.push({ meal: mealId, quantity: quantity || 1, price: mealPrice });
     }
@@ -61,6 +70,12 @@ const updateCartItem = async (req, res) => {
     if (!cart) return res.status(404).json({ success: false, message: 'Cart not found' });
     const item = cart.items.find(item => item.meal.toString() === mealId);
     if (!item) return res.status(404).json({ success: false, message: 'Item not found in cart' });
+
+    if (!item.price || item.price === 0) {
+      const meal = await Meal.findById(mealId);
+      if (meal) item.price = meal.basePrice || meal.price || 0;
+    }
+
     if (quantity <= 0) {
       cart.items = cart.items.filter(item => item.meal.toString() !== mealId);
     } else {
