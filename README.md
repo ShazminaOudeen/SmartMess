@@ -202,9 +202,10 @@ http://localhost:5173
 
 ---
 
-## 🧪 API Testing
+## 🧪Testing
 
-- Postman to test backend APIs
+- Postman & Thunder Client to test backend APIs
+- Playwright Automated testing
 
 ---
 
