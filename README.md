@@ -31,6 +31,9 @@ SmartMess follows a **modular, scalable MERN architecture** that reflects real-w
 - **Tools:** VS Code, Postman, Git & GitHub  
  
 ---
+## Additional Component
+-AI Chatbot Assistant
+---
 
 ## ✨ Features (Functional Overview)
 ---
@@ -199,10 +202,9 @@ http://localhost:5173
 
 ---
 
-## 🧪Testing
+## 🧪 API Testing
 
-- Postman & Thunder Client to test backend APIs
-- Playwright Automated testing
+- Postman to test backend APIs
 
 ---
 

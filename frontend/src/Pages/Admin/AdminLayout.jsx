@@ -8,6 +8,7 @@ import CanteenVisibility from './Canteenvisibility';
 import UserManagement from './Usermanagement';
 import Analytics from './Analytics';
 import ComplaintManagement from './Complaintmanagement';
+import ChatBot from "../../components/ChatBot";
 
 
 
@@ -60,6 +61,7 @@ export default function AdminLayout() {
           <Route path="*"                  element={<AdminDashboard />} />
         </Routes>
       </div>
+      <ChatBot />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import StudentSidebar from "../components/StudentSidebar";
 import NotificationBell from "../components/NotificationBell";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
+import ChatBot from "../components/ChatBot";
 
 const PAGE_TITLES = {
   "/student/canteens": "Canteens",
@@ -74,6 +75,7 @@ export default function StudentLayout() {
           <Outlet />
         </main>
       </div>
+      <ChatBot />
     </div>
   );
 }
