@@ -73,6 +73,10 @@ app.use('/api/student/payment',    require('./routes/paymentRoutes'));
 app.use('/api/student/tracking',   require('./routes/studentTrackingRoutes'));
 app.use('/api/student/complaints', require('./routes/complaintRoutes'));
 
+// Chatbot routes
+const chatbotRoutes = require('./Chatbot/chatbotRoutes');
+app.use('/api/chatbot', chatbotRoutes);
+
 // Health check
 app.get('/', (_req, res) => res.send('SmartMess backend running!'));
 app.get('/api/health', (_req, res) =>

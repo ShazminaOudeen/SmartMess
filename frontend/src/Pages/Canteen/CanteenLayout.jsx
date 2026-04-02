@@ -10,6 +10,7 @@ import RevenuePage from './RevenuePage';
 import ReviewsPage from './ReviewsPage';
 import ReportIssuePage from './ReportIssuePage';
 import CanteenDashboard from './CanteenDashboard';
+import ChatBot from "../../components/ChatBot";
 
 
 /*function Placeholder({ title, emoji }) {
@@ -30,7 +31,7 @@ export default function CanteenLayout() {
         <Routes>
         <Route index element={<CanteenDashboard />} />
           <Route path="profile" element={<CanteenProfile />} />
-        <Route path="hours"   element={<OperatingHours />} />   
+        <Route path="hours"   element={<OperatingHours />} />
           <Route path="meals" element={<MealsPage />} />
          <Route path="orders" element={<OrdersPage />} />
           <Route path="revenue" element={<RevenuePage />} />
@@ -38,6 +39,7 @@ export default function CanteenLayout() {
           <Route path="report" element={<ReportIssuePage />} />
  <Route path="dashboard" element={<CanteenDashboard />} />        </Routes>
       </div>
+      <ChatBot />
     </div>
   );
 }
