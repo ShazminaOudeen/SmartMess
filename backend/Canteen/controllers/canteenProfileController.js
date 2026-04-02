@@ -1,4 +1,3 @@
-//backend/Canteen/controllers/canteenProfileController.js
 const mongoose = require('mongoose');
 const multer   = require('multer');
 const path     = require('path');
@@ -44,9 +43,44 @@ const updateCanteenProfile = async (req, res) => {
   try {
     const { ownerName, canteenName, email, phone, location, description } = req.body;
 
+    // ── Server-side validation ────────────────────────────────────────────────
+
     if (!ownerName || !canteenName) {
       return res.status(400).json({ success: false, message: 'Owner name and canteen name are required' });
     }
+
+    if (!/^[a-zA-Z\s]+$/.test(ownerName.trim())) {
+      return res.status(400).json({ success: false, message: 'Owner name must contain letters only (no numbers or symbols)' });
+    }
+
+    if (ownerName.trim().length > 50) {
+      return res.status(400).json({ success: false, message: 'Owner name must be 50 characters or less' });
+    }
+
+    if (!/^[a-zA-Z\s]+$/.test(canteenName.trim())) {
+      return res.status(400).json({ success: false, message: 'Canteen name must contain letters only (no numbers or symbols)' });
+    }
+
+    if (canteenName.trim().length > 50) {
+      return res.status(400).json({ success: false, message: 'Canteen name must be 50 characters or less' });
+    }
+
+    if (email?.trim()) {
+      const emailRegex = /^[^\s@]+@[^@.\s]+\.[^@.\s]+$/;
+      if (!emailRegex.test(email.trim())) {
+        return res.status(400).json({ success: false, message: 'Enter a valid email address (e.g. name@example.com)' });
+      }
+    }
+
+    if (description?.trim() && /\d/.test(description.trim())) {
+      return res.status(400).json({ success: false, message: 'Description must not contain numbers' });
+    }
+
+    if (description?.trim().length > 500) {
+      return res.status(400).json({ success: false, message: 'Description must be 500 characters or less' });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
 
     const updateData = {
       ownerName:   ownerName.trim(),
@@ -93,7 +127,6 @@ const getOperatingHours = async (req, res) => {
 
     let hours = canteen?.operatingHours || [];
 
-    // Handle case where operatingHours was stored as a JSON string instead of array
     if (typeof hours === 'string') {
       try {
         hours = JSON.parse(hours);
@@ -124,7 +157,6 @@ const updateOperatingHours = async (req, res) => {
       }
     }
 
-    // Always save as a proper array (fixes any legacy string storage)
     await getCollection('canteens').updateOne(
       { owner: new mongoose.Types.ObjectId(req.user._id) },
       { $set: { operatingHours: hours, updatedAt: new Date() } }
