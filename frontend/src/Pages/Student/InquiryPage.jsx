@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import {
   MessageSquare, Send, Loader2, Check, X, AlertCircle,
-  Phone, Mail, User, FileText, ChevronDown, ArrowLeft, Upload
+  Phone, Mail, User, FileText, ArrowLeft, Upload, CreditCard
 } from "lucide-react";
 
 const INQUIRY_TYPES = [
@@ -25,37 +25,53 @@ export default function InquiryPage() {
   const fileRef = useRef(null);
 
   const [form, setForm] = useState({
-    name:          user?.name  || "",
-    email:         user?.email || "",
-    phone:         "",
-    inquiryType:   "",
-    subject:       "",
-    message:       "",
-    contactPref:   "Email",
+    name:        user?.name  || "",
+    email:       user?.email || "",
+    phone:       "",
+    nic:         "",
+    inquiryType: "",
+    subject:     "",
+    message:     "",
+    contactPref: "Email",
   });
-  const [attachment, setAttachment]     = useState(null);
+  const [attachment, setAttachment]       = useState(null);
   const [attachPreview, setAttachPreview] = useState(null);
-  const [errors, setErrors]             = useState({});
-  const [touched, setTouched]           = useState({});
-  const [submitting, setSubmitting]     = useState(false);
-  const [submitted, setSubmitted]       = useState(false);
-  const [showConfirm, setShowConfirm]   = useState(false);
+  const [errors, setErrors]               = useState({});
+  const [touched, setTouched]             = useState({});
+  const [submitting, setSubmitting]       = useState(false);
+  const [submitted, setSubmitted]         = useState(false);
+  const [showConfirm, setShowConfirm]     = useState(false);
 
   // ── Validation ──
   const validate = (f = form) => {
     const e = {};
-    if (!f.name.trim())                          e.name         = "Full name is required.";
-    else if (f.name.trim().length < 2)           e.name         = "Name must be at least 2 characters.";
-    if (!f.email.trim())                         e.email        = "Email is required.";
+
+    if (!f.name.trim())                e.name  = "Full name is required.";
+    else if (f.name.trim().length < 2) e.name  = "Name must be at least 2 characters.";
+
+    if (!f.email.trim())               e.email = "Email is required.";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim())) e.email = "Enter a valid email address.";
-    if (!f.phone.trim())                         e.phone        = "Phone number is required.";
-    else if (!/^\+?\d{7,15}$/.test(f.phone.trim().replace(/\s/g, ""))) e.phone = "Enter a valid phone number (e.g. +94771234567).";
-    if (!f.inquiryType)                          e.inquiryType  = "Please select an inquiry type.";
-    if (!f.subject.trim())                       e.subject      = "Subject is required.";
-    else if (f.subject.trim().length < 5)        e.subject      = "Subject must be at least 5 characters.";
-    if (!f.message.trim())                       e.message      = "Message is required.";
-    else if (f.message.trim().length < 20)       e.message      = `Too short — ${20 - f.message.trim().length} more characters needed.`;
-    else if (f.message.trim().length > 1000)     e.message      = "Maximum 1000 characters allowed.";
+
+    if (!f.phone.trim())               e.phone = "Phone number is required.";
+    else if (!/^\+?\d{7,15}$/.test(f.phone.trim().replace(/\s/g, "")))
+      e.phone = "Enter a valid phone number (e.g. +94771234567).";
+
+    // Sri Lankan NIC validation
+    // Old format: 9 digits + V or X (e.g. 952345678V)
+    // New format: 12 digits (e.g. 200012345678)
+    if (!f.nic.trim())                 e.nic   = "NIC number is required.";
+    else if (!/^(\d{9}[VvXx]|\d{12})$/.test(f.nic.trim()))
+      e.nic = "Enter a valid Sri Lankan NIC (e.g. 952345678V or 200012345678).";
+
+    if (!f.inquiryType)                e.inquiryType = "Please select an inquiry type.";
+
+    if (!f.subject.trim())             e.subject = "Subject is required.";
+    else if (f.subject.trim().length < 5) e.subject = "Subject must be at least 5 characters.";
+
+    if (!f.message.trim())             e.message = "Message is required.";
+    else if (f.message.trim().length < 20)  e.message = `Too short — ${20 - f.message.trim().length} more characters needed.`;
+    else if (f.message.trim().length > 1000) e.message = "Maximum 1000 characters allowed.";
+
     return e;
   };
 
@@ -98,10 +114,12 @@ export default function InquiryPage() {
       formData.append("submittedByEmail", form.email);
       formData.append("submitterId",      user?._id || user?.id || "");
       formData.append("category",         form.inquiryType);
-      formData.append("description",      `[Subject: ${form.subject}] [Phone: ${form.phone}] [Contact Pref: ${form.contactPref}]\n\n${form.message}`);
+      formData.append("description",
+        `[Subject: ${form.subject}] [Phone: ${form.phone}] [NIC: ${form.nic}] [Contact Pref: ${form.contactPref}]\n\n${form.message}`
+      );
       if (attachment) formData.append("attachment", attachment);
 
-      const res = await fetch("/api/student/complaints", { method: "POST", body: formData });
+      const res  = await fetch("/api/student/complaints", { method: "POST", body: formData });
       const data = await res.json();
       if (data.success) setSubmitted(true);
       else setErrors({ submit: data.message || "Failed to submit. Please try again." });
@@ -109,6 +127,12 @@ export default function InquiryPage() {
       setErrors({ submit: "Network error. Please try again." });
     }
     setSubmitting(false);
+  };
+
+  const resetForm = () => {
+    setSubmitted(false);
+    setForm({ name: user?.name||"", email: user?.email||"", phone:"", nic:"", inquiryType:"", subject:"", message:"", contactPref:"Email" });
+    setErrors({}); setTouched({}); setAttachment(null); setAttachPreview(null);
   };
 
   const ErrMsg = ({ field }) =>
@@ -132,8 +156,7 @@ export default function InquiryPage() {
           <p className="text-gray-400 text-xs mb-6">We'll get back to you via your preferred contact method within 24–48 hours.</p>
           <div className="space-y-3">
             <button onClick={() => navigate("/student/canteens")} className="btn-primary w-full">Back to Canteens</button>
-            <button onClick={() => { setSubmitted(false); setForm({ name: user?.name||"", email: user?.email||"", phone:"", inquiryType:"", subject:"", message:"", contactPref:"Email" }); setErrors({}); setTouched({}); setAttachment(null); setAttachPreview(null); }}
-              className="btn-secondary w-full">Submit Another</button>
+            <button onClick={resetForm} className="btn-secondary w-full">Submit Another</button>
           </div>
         </div>
       </div>
@@ -224,6 +247,26 @@ export default function InquiryPage() {
                 onChange={(e) => handleChange("phone", e.target.value)} onBlur={() => handleBlur("phone")}
                 className={inputCls("phone")} />
               <ErrMsg field="phone" />
+            </div>
+          </div>
+
+          {/* NIC */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
+              <CreditCard size={11} className="inline mr-1" />NIC Number <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. 952345678V or 200012345678"
+              value={form.nic}
+              onChange={(e) => handleChange("nic", e.target.value.toUpperCase())}
+              onBlur={() => handleBlur("nic")}
+              maxLength={12}
+              className={inputCls("nic")}
+            />
+            <div className="flex items-center justify-between mt-1">
+              <ErrMsg field="nic" />
+              <p className="text-[10px] text-gray-400 ml-auto">Old: 952345678V · New: 200012345678</p>
             </div>
           </div>
 
