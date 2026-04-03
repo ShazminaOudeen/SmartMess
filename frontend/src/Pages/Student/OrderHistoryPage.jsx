@@ -8,8 +8,7 @@ import {
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { trackingAPI, orderAPI, cartAPI } from "../../api/studentApi";
-
-const TEMP_STUDENT_ID = "64f1a2b3c4d5e6f7a8b9c0d1";
+import { useAuth } from "../../context/AuthContext";
 
 const STATUS_CONFIG = {
   pending:   { badge: "badge-yellow", Icon: Clock,       label: "Pending",   pulse: true },
@@ -36,19 +35,23 @@ function OrderSkeleton() {
 }
 
 export default function OrderHistoryPage() {
-  const [orders, setOrders]       = useState([]);
-  const [loading, setLoading]     = useState(true);
+  const { user } = useAuth();
+  const studentId = user?._id || user?.id;
+
+  const [orders, setOrders]         = useState([]);
+  const [loading, setLoading]       = useState(true);
   const [cancelling, setCancelling] = useState("");
   const [reordering, setReordering] = useState("");
-  const [filter, setFilter]       = useState("all");
+  const [filter, setFilter]         = useState("all");
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
-  const [toast, setToast]         = useState("");
+  const [toast, setToast]           = useState("");
   const pollRef = useRef(null);
   const navigate = useNavigate();
 
   const fetchOrders = async (showLoader = false) => {
+    if (!studentId) return;
     if (showLoader) setLoading(true);
-    const res = await trackingAPI.getHistory(TEMP_STUDENT_ID);
+    const res = await trackingAPI.getHistory(studentId);
     if (res.success) { setOrders(res.data); setLastRefreshed(new Date()); }
     if (showLoader) setLoading(false);
   };
@@ -57,7 +60,7 @@ export default function OrderHistoryPage() {
     fetchOrders(true);
     pollRef.current = setInterval(() => fetchOrders(false), 30000);
     return () => clearInterval(pollRef.current);
-  }, []);
+  }, [studentId]);
 
   const handleCancel = async (orderId) => {
     setCancelling(orderId);
@@ -71,7 +74,7 @@ export default function OrderHistoryPage() {
     try {
       for (const item of order.items) {
         if (item.meal) {
-          await cartAPI.addToCart({ studentId: TEMP_STUDENT_ID, mealId: item.meal, quantity: item.quantity });
+          await cartAPI.addToCart({ studentId, mealId: item.meal, quantity: item.quantity });
         }
       }
       showToast("Items added to cart!");
@@ -92,8 +95,7 @@ export default function OrderHistoryPage() {
     doc.setFontSize(10); doc.setFont("helvetica", "normal");
     doc.text("Order Receipt", 14, 24);
     doc.setFontSize(8);
-    doc.text(`Generated: ${new Date().toLocaleDateString("en-MY")}`, 196, 24, { align: "right" });
-
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 196, 24, { align: "right" });
     doc.setTextColor(40, 40, 40);
     doc.setDrawColor(229, 231, 235); doc.setFillColor(248, 255, 250);
     doc.roundedRect(14, 42, 182, 30, 3, 3, "FD");
@@ -105,41 +107,36 @@ export default function OrderHistoryPage() {
     doc.setTextColor(40, 40, 40); doc.setFont("helvetica", "bold");
     doc.text(`#${order._id?.slice(-8).toUpperCase()}`, 50, 59);
     doc.text(order.canteen?.name || "Canteen", 50, 66);
-    doc.text(new Date(order.createdAt).toLocaleDateString("en-MY"), 130, 59);
+    doc.text(new Date(order.createdAt).toLocaleDateString(), 130, 59);
     doc.setTextColor(22, 163, 74);
     doc.text(order.status.toUpperCase(), 130, 66);
-
     doc.setTextColor(40, 40, 40); doc.setFontSize(9); doc.setFont("helvetica", "bold");
     doc.text("ITEMS ORDERED", 14, 82);
-
     autoTable(doc, {
       startY: 86,
       head: [["Item", "Qty", "Unit Price", "Subtotal"]],
       body: order.items.map((item) => [
         item.name, item.quantity,
-        `RM ${item.price?.toFixed(2)}`,
-        `RM ${(item.price * item.quantity).toFixed(2)}`,
+        `RS ${item.price?.toFixed(2)}`,
+        `RS ${(item.price * item.quantity).toFixed(2)}`,
       ]),
       headStyles: { fillColor: [22, 163, 74], textColor: 255, fontStyle: "bold", fontSize: 9 },
       bodyStyles: { fontSize: 9, textColor: [50, 50, 50] },
       alternateRowStyles: { fillColor: [248, 255, 250] },
       styles: { cellPadding: 4, lineColor: [229, 231, 235], lineWidth: 0.3 },
-      foot: [["", "", "TOTAL", `RM ${order.totalAmount?.toFixed(2)}`]],
+      foot: [["", "", "TOTAL", `RS ${order.totalAmount?.toFixed(2)}`]],
       footStyles: { fillColor: [240, 253, 244], textColor: [22, 163, 74], fontStyle: "bold", fontSize: 10 },
     });
-
     const finalY = doc.lastAutoTable.finalY + 8;
     doc.setFontSize(9); doc.setFont("helvetica", "normal"); doc.setTextColor(100, 100, 100);
     doc.text("Payment Method:", 14, finalY);
     doc.setTextColor(40, 40, 40); doc.setFont("helvetica", "bold");
     doc.text(order.paymentMethod?.toUpperCase() || "CASH", 55, finalY);
-
     const pageHeight = doc.internal.pageSize.height;
     doc.setFontSize(8); doc.setTextColor(150, 150, 150);
     doc.text("Thank you for ordering with SmartMess!", 105, pageHeight - 15, { align: "center" });
     doc.text("SmartMess — Smart Canteen Management System", 14, pageHeight - 10);
     doc.text("Page 1 of 1", 196, pageHeight - 10, { align: "right" });
-
     doc.save(`Receipt_${order._id?.slice(-8).toUpperCase()}.pdf`);
   };
 
@@ -171,19 +168,17 @@ export default function OrderHistoryPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => fetchOrders(false)}
-              className="btn-secondary flex items-center gap-1.5 text-xs">
+            <button onClick={() => fetchOrders(false)} className="btn-secondary flex items-center gap-1.5 text-xs">
               <RefreshCw size={12} /> Refresh
             </button>
-            <button onClick={() => navigate("/student/expenses")}
-              className="btn-secondary flex items-center gap-2 text-sm">
+            <button onClick={() => navigate("/student/expenses")} className="btn-secondary flex items-center gap-2 text-sm">
               <BarChart2 size={14} /> Expenses
             </button>
           </div>
         </div>
 
         <p className="text-[11px] text-gray-400 mb-5 -mt-4">
-          Last updated: {lastRefreshed.toLocaleTimeString("en-MY")} · Auto-refreshes every 30s
+          Last updated: {lastRefreshed.toLocaleTimeString()} · Auto-refreshes every 30s
         </p>
 
         {/* Filter Tabs */}
@@ -247,7 +242,7 @@ export default function OrderHistoryPage() {
                   {order.items?.map((item, j) => (
                     <div key={j} className="flex justify-between text-xs">
                       <span className="text-gray-500">{item.name} × {item.quantity}</span>
-                      <span className="text-gray-700 dark:text-gray-300 font-medium">RM {(item.price * item.quantity).toFixed(2)}</span>
+                      <span className="text-gray-700 dark:text-gray-300 font-medium">RS {(item.price * item.quantity).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
@@ -255,10 +250,10 @@ export default function OrderHistoryPage() {
                 <div className="flex items-center justify-between pt-3 border-t border-gray-50 dark:border-gray-700 pl-12">
                   <div>
                     <p className="font-bold text-gray-900 dark:text-white text-sm">
-                      RM <span className="text-gradient">{order.totalAmount?.toFixed(2)}</span>
+                      RS <span className="text-gradient">{order.totalAmount?.toFixed(2)}</span>
                     </p>
                     <p className="text-[11px] text-gray-400 mt-0.5">
-                      {new Date(order.createdAt).toLocaleDateString("en-MY", {
+                      {new Date(order.createdAt).toLocaleDateString("en-US", {
                         day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
                       })}
                     </p>

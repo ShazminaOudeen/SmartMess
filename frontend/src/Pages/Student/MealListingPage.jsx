@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, ShoppingCart, SlidersHorizontal, Plus, Check, AlertCircle, Utensils, X, Star, ChevronDown, Upload, Loader2, Send, Phone, Mail, Calendar, Flag } from "lucide-react";
 import { canteenAPI, cartAPI } from "../../api/studentApi";
+import { useAuth } from "../../context/AuthContext";
 
 const CATEGORIES = ["All", "Breakfast", "Lunch", "Dinner", "Dessert", "Drinks", "Snacks", "Other"];
 
@@ -18,18 +19,14 @@ const PRIORITY_LEVELS = [
 ];
 
 const PRICE_OPTIONS = [
-  { label: "Any Price",    value: "" },
-  { label: "Under RS 5",  value: "5" },
-  { label: "Under RS 10", value: "10" },
-  { label: "Under RS 15", value: "15" },
-  { label: "Under RS 20", value: "20" },
-  { label: "Under RS 30", value: "30" },
-  { label: "Under RS 50", value: "50" },
+  { label: "Any Price",      value: "" },
+  { label: "Under RS 100",   value: "100" },
+  { label: "Under RS 250",   value: "250" },
+  { label: "Under RS 500",   value: "500" },
+  { label: "Under RS 1000",  value: "1000" },
+  { label: "Under RS 1500",  value: "1500" },
+  { label: "Under RS 2000",  value: "2000" },
 ];
-
-const TEMP_STUDENT_ID    = "64f1a2b3c4d5e6f7a8b9c0d1";
-const TEMP_STUDENT_NAME  = "Test Student";
-const TEMP_STUDENT_EMAIL = "student@smartmess.com";
 
 function MealSkeleton() {
   return (
@@ -49,6 +46,10 @@ function MealSkeleton() {
 
 export default function MealListingPage() {
   const { canteenId } = useParams();
+  const { user } = useAuth();
+  const studentId   = user?._id || user?.id;
+  const studentName  = user?.name || "Student";
+  const studentEmail = user?.email || "";
   const navigate = useNavigate();
   const fileRef = useRef(null);
 
@@ -61,26 +62,26 @@ export default function MealListingPage() {
   const [toast, setToast]       = useState("");
 
   // Rating modal
-  const [ratingModal, setRatingModal]           = useState(false);
-  const [canteenRating, setCanteenRating]       = useState(0);
-  const [canteenReview, setCanteenReview]       = useState("");
-  const [ratingSubmitted, setRatingSubmitted]   = useState(false);
+  const [ratingModal, setRatingModal]         = useState(false);
+  const [canteenRating, setCanteenRating]     = useState(0);
+  const [canteenReview, setCanteenReview]     = useState("");
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
 
   // Complaint modal
-  const [reportModal, setReportModal]                   = useState(false);
-  const [reportCategory, setReportCategory]             = useState("");
-  const [reportDesc, setReportDesc]                     = useState("");
-  const [reportPriority, setReportPriority]             = useState("");
-  const [reportDate, setReportDate]                     = useState("");
-  const [reportContact, setReportContact]               = useState("Email");
-  const [reportPhone, setReportPhone]                   = useState("");
-  const [reportPhoto, setReportPhoto]                   = useState(null);
-  const [reportPhotoPreview, setReportPhotoPreview]     = useState(null);
-  const [reportSubmitting, setReportSubmitting]         = useState(false);
-  const [reportSubmitted, setReportSubmitted]           = useState(false);
-  const [reportErrors, setReportErrors]                 = useState({});
-  const [showConfirm, setShowConfirm]                   = useState(false);
-  const [touched, setTouched]                           = useState({});
+  const [reportModal, setReportModal]               = useState(false);
+  const [reportCategory, setReportCategory]         = useState("");
+  const [reportDesc, setReportDesc]                 = useState("");
+  const [reportPriority, setReportPriority]         = useState("");
+  const [reportDate, setReportDate]                 = useState("");
+  const [reportContact, setReportContact]           = useState("Email");
+  const [reportPhone, setReportPhone]               = useState("");
+  const [reportPhoto, setReportPhoto]               = useState(null);
+  const [reportPhotoPreview, setReportPhotoPreview] = useState(null);
+  const [reportSubmitting, setReportSubmitting]     = useState(false);
+  const [reportSubmitted, setReportSubmitted]       = useState(false);
+  const [reportErrors, setReportErrors]             = useState({});
+  const [showConfirm, setShowConfirm]               = useState(false);
+  const [touched, setTouched]                       = useState({});
 
   useEffect(() => {
     canteenAPI.getById(canteenId).then((res) => {
@@ -104,7 +105,7 @@ export default function MealListingPage() {
   const handlePriceFilter = (e) => { const p = e.target.value; setMaxPrice(p); fetchMeals(category, p); };
 
   const handleAddToCart = async (meal) => {
-    const res = await cartAPI.addToCart({ studentId: TEMP_STUDENT_ID, mealId: meal._id, quantity: 1 });
+    const res = await cartAPI.addToCart({ studentId, mealId: meal._id, quantity: 1 });
     if (res.success) {
       setAddedMap((prev) => ({ ...prev, [meal._id]: true }));
       setToast(`${meal.name} added to cart!`);
@@ -122,20 +123,20 @@ export default function MealListingPage() {
   // ── Validation ──
   const validate = (fields = {}) => {
     const e = {};
-    const cat  = fields.reportCategory  ?? reportCategory;
-    const desc = fields.reportDesc      ?? reportDesc;
-    const pri  = fields.reportPriority  ?? reportPriority;
-    const date = fields.reportDate      ?? reportDate;
-    const con  = fields.reportContact   ?? reportContact;
-    const ph   = fields.reportPhone     ?? reportPhone;
+    const cat  = fields.reportCategory ?? reportCategory;
+    const desc = fields.reportDesc     ?? reportDesc;
+    const pri  = fields.reportPriority ?? reportPriority;
+    const date = fields.reportDate     ?? reportDate;
+    const con  = fields.reportContact  ?? reportContact;
+    const ph   = fields.reportPhone    ?? reportPhone;
 
-    if (!cat)                             e.reportCategory = "Please select a category.";
-    if (!pri)                             e.reportPriority = "Please select a priority level.";
-    if (!date)                            e.reportDate     = "Please select the date of incident.";
-    if (!desc.trim())                     e.reportDesc     = "Description is required.";
-    else if (desc.trim().length < 20)     e.reportDesc     = `Too short — ${20 - desc.trim().length} more characters needed.`;
-    else if (desc.trim().length > 500)    e.reportDesc     = "Maximum 500 characters allowed.";
-    if (con === "Phone" && !ph.trim())    e.reportPhone    = "Phone number is required.";
+    if (!cat)                          e.reportCategory = "Please select a category.";
+    if (!pri)                          e.reportPriority = "Please select a priority level.";
+    if (!date)                         e.reportDate     = "Please select the date of incident.";
+    if (!desc.trim())                  e.reportDesc     = "Description is required.";
+    else if (desc.trim().length < 20)  e.reportDesc     = `Too short — ${20 - desc.trim().length} more characters needed.`;
+    else if (desc.trim().length > 500) e.reportDesc     = "Maximum 500 characters allowed.";
+    if (con === "Phone" && !ph.trim()) e.reportPhone    = "Phone number is required.";
     else if (con === "Phone" && !/^\+?\d{7,15}$/.test(ph.trim())) e.reportPhone = "Enter a valid phone number.";
     return e;
   };
@@ -148,12 +149,12 @@ export default function MealListingPage() {
   const handleReportChange = (field, value) => {
     const map = { reportCategory, reportDesc, reportPriority, reportDate, reportContact, reportPhone };
     map[field] = value;
-    if (field === "reportCategory")  setReportCategory(value);
-    if (field === "reportDesc")      setReportDesc(value);
-    if (field === "reportPriority")  setReportPriority(value);
-    if (field === "reportDate")      setReportDate(value);
-    if (field === "reportContact")   setReportContact(value);
-    if (field === "reportPhone")     setReportPhone(value);
+    if (field === "reportCategory") setReportCategory(value);
+    if (field === "reportDesc")     setReportDesc(value);
+    if (field === "reportPriority") setReportPriority(value);
+    if (field === "reportDate")     setReportDate(value);
+    if (field === "reportContact")  setReportContact(value);
+    if (field === "reportPhone")    setReportPhone(value);
     if (touched[field]) setReportErrors(validate(map));
   };
 
@@ -167,7 +168,6 @@ export default function MealListingPage() {
   };
 
   const handleReportSubmitClick = () => {
-    // Touch all fields
     setTouched({ reportCategory: true, reportDesc: true, reportPriority: true, reportDate: true, reportContact: true, reportPhone: true });
     const errs = validate();
     setReportErrors(errs);
@@ -180,14 +180,14 @@ export default function MealListingPage() {
     setReportSubmitting(true);
     try {
       const formData = new FormData();
-      formData.append("submittedByName", TEMP_STUDENT_NAME);
-      formData.append("submittedByEmail", TEMP_STUDENT_EMAIL);
-      formData.append("submitterId", TEMP_STUDENT_ID);
-      formData.append("category", reportCategory);
+      formData.append("submittedByName",  studentName);
+      formData.append("submittedByEmail", studentEmail);
+      formData.append("submitterId",      studentId);
+      formData.append("category",         reportCategory);
       formData.append("description", `[Priority: ${reportPriority}] [Date: ${reportDate}] [Contact: ${reportContact}${reportContact === "Phone" ? " - " + reportPhone : ""}]\n\n${reportDesc}`);
       if (reportPhoto) formData.append("attachment", reportPhoto);
 
-      const res = await fetch("/api/student/complaints", { method: "POST", body: formData });
+      const res  = await fetch("/api/student/complaints", { method: "POST", body: formData });
       const data = await res.json();
       if (data.success) {
         setReportSubmitted(true);
@@ -337,10 +337,12 @@ export default function MealListingPage() {
                   <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3.5">
                     <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Submitted By (Auto-filled)</p>
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-xs font-bold text-green-600 flex-shrink-0">TS</div>
+                      <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-xs font-bold text-green-600 flex-shrink-0">
+                        {studentName.charAt(0).toUpperCase()}
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-800 dark:text-white">{TEMP_STUDENT_NAME}</p>
-                        <p className="text-xs text-gray-400">{TEMP_STUDENT_EMAIL}</p>
+                        <p className="text-sm font-semibold text-gray-800 dark:text-white">{studentName}</p>
+                        <p className="text-xs text-gray-400">{studentEmail}</p>
                       </div>
                       <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full font-medium flex-shrink-0">Student</span>
                     </div>
@@ -453,7 +455,7 @@ export default function MealListingPage() {
                     </div>
                     {reportContact === "Email" && (
                       <div className="input-field flex items-center gap-2 text-sm text-gray-500 bg-gray-50 dark:bg-gray-700/50 cursor-not-allowed">
-                        <Mail size={13} className="text-green-500 flex-shrink-0" />{TEMP_STUDENT_EMAIL}
+                        <Mail size={13} className="text-green-500 flex-shrink-0" />{studentEmail}
                       </div>
                     )}
                     {reportContact === "Phone" && (

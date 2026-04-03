@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ShoppingCart, ArrowLeft, Minus, Plus, Trash2, Store, ChevronRight } from "lucide-react";
 import { cartAPI } from "../../api/studentApi";
-
-const TEMP_STUDENT_ID = "64f1a2b3c4d5e6f7a8b9c0d1";
+import { useAuth } from "../../context/AuthContext";
 
 function CartSkeleton() {
   return (
@@ -24,72 +23,61 @@ function CartSkeleton() {
 }
 
 export default function CartPage() {
-  const [cart, setCart]       = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const studentId = user?._id || user?.id;
+
+  const [cart, setCart]         = useState(null);
+  const [loading, setLoading]   = useState(true);
   const [updating, setUpdating] = useState("");
   const navigate = useNavigate();
 
-  useEffect(() => { fetchCart(); }, []);
+  useEffect(() => { if (studentId) fetchCart(); }, [studentId]);
 
   const fetchCart = async () => {
     setLoading(true);
-    const res = await cartAPI.getCart(TEMP_STUDENT_ID);
+    const res = await cartAPI.getCart(studentId);
     if (res.success) setCart(res.data);
     setLoading(false);
   };
 
-  // ✅ Fixed increase quantity
   const handleIncrease = async (item) => {
     setUpdating(item.meal._id || item.meal);
     const res = await cartAPI.updateItem({
-      studentId: TEMP_STUDENT_ID,
+      studentId,
       mealId: item.meal._id || item.meal,
       quantity: item.quantity + 1,
-    });
-    if (res.success) setCart(res.data);
-    else await fetchCart(); // fallback re-fetch
-    setUpdating("");
-  };
-
-  // ✅ Fixed decrease quantity (removes if hits 0)
-  const handleDecrease = async (item) => {
-    const mealId = item.meal._id || item.meal;
-    setUpdating(mealId);
-    if (item.quantity <= 1) {
-      // Remove item if quantity would go to 0
-      const res = await cartAPI.removeItem({
-        studentId: TEMP_STUDENT_ID,
-        mealId,
-      });
-      if (res.success) setCart(res.data);
-      else await fetchCart();
-    } else {
-      const res = await cartAPI.updateItem({
-        studentId: TEMP_STUDENT_ID,
-        mealId,
-        quantity: item.quantity - 1,
-      });
-      if (res.success) setCart(res.data);
-      else await fetchCart();
-    }
-    setUpdating("");
-  };
-
-  // ✅ Fixed remove item
-  const handleRemove = async (item) => {
-    const mealId = item.meal._id || item.meal;
-    setUpdating(mealId);
-    const res = await cartAPI.removeItem({
-      studentId: TEMP_STUDENT_ID,
-      mealId,
     });
     if (res.success) setCart(res.data);
     else await fetchCart();
     setUpdating("");
   };
 
+  const handleDecrease = async (item) => {
+    const mealId = item.meal._id || item.meal;
+    setUpdating(mealId);
+    if (item.quantity <= 1) {
+      const res = await cartAPI.removeItem({ studentId, mealId });
+      if (res.success) setCart(res.data);
+      else await fetchCart();
+    } else {
+      const res = await cartAPI.updateItem({ studentId, mealId, quantity: item.quantity - 1 });
+      if (res.success) setCart(res.data);
+      else await fetchCart();
+    }
+    setUpdating("");
+  };
+
+  const handleRemove = async (item) => {
+    const mealId = item.meal._id || item.meal;
+    setUpdating(mealId);
+    const res = await cartAPI.removeItem({ studentId, mealId });
+    if (res.success) setCart(res.data);
+    else await fetchCart();
+    setUpdating("");
+  };
+
   const handleClear = async () => {
-    await cartAPI.clearCart(TEMP_STUDENT_ID);
+    await cartAPI.clearCart(studentId);
     await fetchCart();
   };
 
@@ -169,7 +157,7 @@ export default function CartPage() {
                       </p>
                     </div>
 
-                    {/* ✅ Quantity controls */}
+                    {/* Quantity controls */}
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button
                         onClick={() => handleDecrease(item)}
@@ -198,7 +186,7 @@ export default function CartPage() {
                       </p>
                     </div>
 
-                    {/* ✅ Remove button */}
+                    {/* Remove button */}
                     <button
                       onClick={() => handleRemove(item)}
                       disabled={isUpdating}

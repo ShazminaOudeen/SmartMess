@@ -6,13 +6,10 @@ const Order = require('../models/Order');
 const getApprovedCanteens = async (req, res) => {
   try {
     const canteens = await Canteen.find({ isApproved: true, isActive: true });
-    
-    // ✅ normalize — ensure 'name' field always exists
     const normalized = canteens.map(c => ({
       ...c.toObject(),
       name: c.name || c.canteenName || 'Unnamed Canteen',
     }));
-
     res.status(200).json({ success: true, data: normalized });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -38,10 +35,12 @@ const getMealsByCanteen = async (req, res) => {
 
     if (category) filter.category = category;
     if (available === 'true') filter.isAvailable = true;
+
+    // ✅ Fix: use basePrice instead of price
     if (minPrice || maxPrice) {
-      filter.price = {};
-      if (minPrice) filter.price.$gte = Number(minPrice);
-      if (maxPrice) filter.price.$lte = Number(maxPrice);
+      filter.basePrice = {};
+      if (minPrice) filter.basePrice.$gte = Number(minPrice);
+      if (maxPrice) filter.basePrice.$lte = Number(maxPrice);
     }
 
     const meals = await Meal.find(filter);
@@ -67,11 +66,12 @@ const globalMealSearch = async (req, res) => {
     }
 
     if (category && category !== 'All') filter.category = category;
-    if (maxPrice) filter.price = { $lte: Number(maxPrice) };
+
+    // ✅ Fix: use basePrice instead of price
+    if (maxPrice) filter.basePrice = { $lte: Number(maxPrice) };
 
     const meals = await Meal.find(filter).populate('canteen', 'name location image isActive isApproved');
 
-    // Only return meals from approved/active canteens
     const filtered = meals.filter(
       (m) => m.canteen && m.canteen.isActive && m.canteen.isApproved
     );
@@ -92,7 +92,6 @@ const getMostOrderedMeals = async (req, res) => {
       status: { $in: ['completed', 'ready'] },
     });
 
-    // Count how many times each meal was ordered
     const mealCount = {};
     orders.forEach((order) => {
       order.items.forEach((item) => {
@@ -105,7 +104,6 @@ const getMostOrderedMeals = async (req, res) => {
       });
     });
 
-    // Sort by count descending, top 5
     const sorted = Object.values(mealCount)
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);

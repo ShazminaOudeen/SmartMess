@@ -24,6 +24,8 @@ import OrderHistoryPage from "./Pages/Student/OrderHistoryPage";
 import ExpenseDashboard from "./Pages/Student/ExpenseDashboard";
 import RatingFeedbackForm from "./Pages/Student/RatingFeedbackForm";
 import GlobalSearchPage from "./Pages/Student/GlobalSearchPage";
+import InquiryPage from "./Pages/Student/InquiryPage";
+
 
 //canteen pages
 import CanteenLayout from "./Pages/Canteen/CanteenLayout";
@@ -65,6 +67,8 @@ function App() {
           <Route path="/student/orders" element={<OrderHistoryPage />} />
           <Route path="/student/expenses" element={<ExpenseDashboard />} />
           <Route path="/student/rating/:orderId/:canteenId" element={<RatingFeedbackForm />} />
+          <Route path="/student/inquiry" element={<InquiryPage />} />
+          
         </Route>
       </Routes>
     </Router>
