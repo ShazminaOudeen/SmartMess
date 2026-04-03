@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   ClipboardList, BarChart2, Store, Star, XCircle,
   Clock, ChefHat, CheckCircle, Ban, Bell, RotateCcw,
-  Download, RefreshCw
+  Download, RefreshCw, Search, X
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -43,6 +43,7 @@ export default function OrderHistoryPage() {
   const [cancelling, setCancelling] = useState("");
   const [reordering, setReordering] = useState("");
   const [filter, setFilter]         = useState("all");
+  const [search, setSearch]         = useState("");
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
   const [toast, setToast]           = useState("");
   const pollRef = useRef(null);
@@ -142,7 +143,17 @@ export default function OrderHistoryPage() {
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
 
-  const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
+  // Filter by status then search by canteen name or order ID
+  const filtered = orders
+    .filter((o) => filter === "all" || o.status === filter)
+    .filter((o) => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      const canteenName = (o.canteen?.name || o.canteen?.canteenName || "").toLowerCase();
+      const orderId = o._id?.slice(-8).toLowerCase();
+      return canteenName.includes(q) || orderId.includes(q);
+    });
+
   const activeCount = orders.filter((o) => ["pending", "accepted", "preparing", "ready"].includes(o.status)).length;
 
   return (
@@ -181,6 +192,24 @@ export default function OrderHistoryPage() {
           Last updated: {lastRefreshed.toLocaleTimeString()} · Auto-refreshes every 30s
         </p>
 
+        {/* Search Bar */}
+        <div className="relative mb-4 animate-fade-up">
+          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search by canteen name or order ID..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="input-field pl-10 pr-10 w-full text-sm"
+          />
+          {search && (
+            <button onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+              <X size={15} />
+            </button>
+          )}
+        </div>
+
         {/* Filter Tabs */}
         <div className="flex gap-2 flex-wrap mb-6 animate-fade-up">
           {FILTERS.map((s) => (
@@ -196,6 +225,13 @@ export default function OrderHistoryPage() {
           ))}
         </div>
 
+        {/* Results count when searching */}
+        {search.trim() && !loading && (
+          <p className="text-xs text-gray-400 mb-4">
+            {filtered.length} result{filtered.length !== 1 ? "s" : ""} for <span className="text-green-600 font-semibold">"{search}"</span>
+          </p>
+        )}
+
         {loading && <div className="space-y-4">{[1,2,3].map((i) => <OrderSkeleton key={i} />)}</div>}
 
         {!loading && filtered.length === 0 && (
@@ -205,9 +241,14 @@ export default function OrderHistoryPage() {
             </div>
             <p className="font-semibold text-gray-700 dark:text-gray-300 mb-1">No orders found</p>
             <p className="text-sm text-gray-400 mb-5">
-              {filter === "all" ? "You haven't placed any orders yet" : `No ${filter} orders`}
+              {search.trim()
+                ? `No orders matching "${search}"`
+                : filter === "all" ? "You haven't placed any orders yet" : `No ${filter} orders`}
             </p>
-            <button onClick={() => navigate("/student/canteens")} className="btn-primary mx-auto">Order Now</button>
+            {search.trim()
+              ? <button onClick={() => setSearch("")} className="btn-secondary mx-auto">Clear Search</button>
+              : <button onClick={() => navigate("/student/canteens")} className="btn-primary mx-auto">Order Now</button>
+            }
           </div>
         )}
 
