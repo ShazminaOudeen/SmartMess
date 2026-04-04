@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   Store, ShoppingCart, ClipboardList, BarChart2,
   Home, LogOut, ChevronLeft, ChevronRight, UtensilsCrossed, Search,
-  Sun, Moon
+  Sun, Moon, MessageSquare
 } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { icon: ShoppingCart,  label: "Cart",      path: "/student/cart" },
   { icon: ClipboardList, label: "My Orders", path: "/student/orders" },
   { icon: BarChart2,     label: "Expenses",  path: "/student/expenses" },
+  { icon: MessageSquare, label: "Inquiry",   path: "/student/inquiry" },
 ];
 
 export default function StudentSidebar() {
@@ -23,7 +24,6 @@ export default function StudentSidebar() {
   const { theme, toggleTheme } = useTheme();
   const dark = theme === "dark";
 
-  // ✅ Get logged in user
   const { user, logout } = useAuth();
   const displayName = user?.name || 'Student';
   const displayEmail = user?.email || '';
@@ -85,14 +85,14 @@ export default function StudentSidebar() {
           <div className={`flex items-center gap-3 px-2 py-2.5 rounded-xl ${dark ? "bg-white/5" : "bg-gray-50"}`}>
             <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
               style={{ background: "linear-gradient(135deg, #16a34a, #4ade80)" }}>
-              {initials} {/* ✅ dynamic initials */}
+              {initials}
             </div>
             <div className="min-w-0">
               <p className={`text-xs font-semibold truncate ${dark ? "text-white" : "text-gray-900"}`}>
-                {displayName} {/* ✅ dynamic name */}
+                {displayName}
               </p>
               <p className={`text-[10px] truncate ${dark ? "text-gray-500" : "text-gray-400"}`}>
-                {displayEmail} {/* ✅ dynamic email */}
+                {displayEmail}
               </p>
             </div>
           </div>
@@ -100,7 +100,7 @@ export default function StudentSidebar() {
           <div className="flex justify-center">
             <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
               style={{ background: "linear-gradient(135deg, #16a34a, #4ade80)" }}>
-              {initials} {/* ✅ dynamic initials */}
+              {initials}
             </div>
           </div>
         )}
@@ -142,9 +142,8 @@ export default function StudentSidebar() {
         })}
       </nav>
 
-      {/* Bottom */}
+      {/* Bottom (unchanged) */}
       <div className={`px-2 py-3 space-y-0.5 border-t ${dark ? "border-gray-800" : "border-gray-100"}`}>
-        {/* Theme toggle */}
         {!collapsed && (
           <button onClick={toggleTheme}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
@@ -154,42 +153,22 @@ export default function StudentSidebar() {
             <span className="text-sm font-medium">{dark ? "Light Mode" : "Dark Mode"}</span>
           </button>
         )}
-        {collapsed && (
-          <button onClick={toggleTheme} title={dark ? "Light Mode" : "Dark Mode"}
-            className={`w-full flex items-center justify-center py-3 rounded-xl transition-all duration-200 ${
-              dark ? "text-gray-400 hover:bg-gray-800/50 hover:text-gray-200" : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-            }`}>
-            {dark ? <Sun size={17} /> : <Moon size={17} />}
-          </button>
-        )}
 
-        <button onClick={() => navigate("/")} title={collapsed ? "Home" : ""}
+        <button onClick={() => navigate("/")}
           className={`w-full flex items-center gap-3 rounded-xl transition-all duration-200
             ${collapsed ? "px-0 py-3 justify-center" : "px-3 py-2.5"}
             ${dark ? "text-gray-400 hover:bg-gray-800/50 hover:text-gray-200" : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"}`}>
-          <Home size={17} strokeWidth={2} className="flex-shrink-0" />
+          <Home size={17} />
           {!collapsed && <span className="text-sm font-medium">Home</span>}
         </button>
 
-        {/* ✅ Fixed logout button */}
-        <button onClick={handleLogout} title={collapsed ? "Logout" : ""}
+        <button onClick={handleLogout}
           className={`w-full flex items-center gap-3 rounded-xl transition-all duration-200
             ${collapsed ? "px-0 py-3 justify-center" : "px-3 py-2.5"}
             ${dark ? "text-gray-600 hover:bg-red-500/10 hover:text-red-400" : "text-gray-400 hover:bg-red-500/10 hover:text-red-600"}`}>
-          <LogOut size={17} strokeWidth={2} className="flex-shrink-0" />
+          <LogOut size={17} />
           {!collapsed && <span className="text-sm font-medium">Logout</span>}
         </button>
-
-        {/* Collapse button */}
-        {!collapsed && (
-          <button onClick={() => setCollapsed(!collapsed)}
-            className={`w-full flex items-center justify-center gap-2 px-3 py-2 mt-1 rounded-xl transition-all duration-200 ${
-              dark ? "text-gray-500 hover:bg-gray-800/50 hover:text-gray-400" : "text-gray-400 hover:bg-gray-100 hover:text-gray-500"
-            }`}>
-            <ChevronLeft size={15} />
-            <span className="text-xs font-medium">Collapse</span>
-          </button>
-        )}
       </div>
     </aside>
   );

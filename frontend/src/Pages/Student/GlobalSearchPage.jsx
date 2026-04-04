@@ -6,13 +6,13 @@ import { canteenAPI, cartAPI } from "../../api/studentApi";
 const CATEGORIES = ["All", "Breakfast", "Lunch", "Dinner", "Dessert", "Drinks", "Snacks", "Other"];
 
 const PRICE_OPTIONS = [
-  { label: "Any Price",    value: "" },
-  { label: "Under RS 5",  value: "5" },
-  { label: "Under RS 10", value: "10" },
-  { label: "Under RS 15", value: "15" },
-  { label: "Under RS 20", value: "20" },
-  { label: "Under RS 30", value: "30" },
-  { label: "Under RS 50", value: "50" },
+  { label: "Any Price",      value: "" },
+  { label: "Under RS 100",   value: "100" },
+  { label: "Under RS 250",   value: "250" },
+  { label: "Under RS 500",   value: "500" },
+  { label: "Under RS 1000",  value: "1000" },
+  { label: "Under RS 1500",  value: "1500" },
+  { label: "Under RS 2000",  value: "2000" },
 ];
 
 const TEMP_STUDENT_ID = "64f1a2b3c4d5e6f7a8b9c0d1";

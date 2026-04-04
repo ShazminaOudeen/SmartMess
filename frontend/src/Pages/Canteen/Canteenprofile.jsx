@@ -12,29 +12,46 @@ const API = '/api/canteen/profile';
 const validate = (form) => {
   const errors = {};
 
+  // Owner name — letters and spaces only
   if (!form.ownerName.trim()) {
     errors.ownerName = 'Owner name is required';
+  } else if (!/^[a-zA-Z\s]+$/.test(form.ownerName.trim())) {
+    errors.ownerName = 'Owner name must contain letters only (no numbers or symbols)';
   } else if (form.ownerName.trim().length > 50) {
     errors.ownerName = 'Owner name must be 50 characters or less';
   }
 
+  // Canteen name — letters and spaces only
   if (!form.canteenName.trim()) {
     errors.canteenName = 'Canteen name is required';
+  } else if (!/^[a-zA-Z\s]+$/.test(form.canteenName.trim())) {
+    errors.canteenName = 'Canteen name must contain letters only (no numbers or symbols)';
   } else if (form.canteenName.trim().length > 50) {
     errors.canteenName = 'Canteen name must be 50 characters or less';
   }
 
+  // Email — exactly one @, domain must have exactly one dot segment
   if (form.email.trim()) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^@.\s]+\.[^@.\s]+$/;
     if (!emailRegex.test(form.email.trim())) {
-      errors.email = 'Enter a valid email address';
+      errors.email = 'Enter a valid email (e.g. name@example.com)';
     }
   }
 
+  // Phone
   if (form.phone.trim()) {
     const digitsOnly = form.phone.trim().replace(/\s+/g, '');
     if (!/^07\d{8}$/.test(digitsOnly)) {
       errors.phone = 'Phone must start with 07 and be exactly 10 digits';
+    }
+  }
+
+  // Description — no numbers allowed
+  if (form.description.trim()) {
+    if (/\d/.test(form.description.trim())) {
+      errors.description = 'Description must not contain numbers';
+    } else if (form.description.trim().length > 500) {
+      errors.description = 'Description must be 500 characters or less';
     }
   }
 
@@ -52,7 +69,6 @@ export default function CanteenProfile() {
   const [errors, setErrors]         = useState({});
   const fileRef = useRef();
 
-  // Use AuthContext instead of localStorage
   const { user, token, logout, updateUser } = useAuth();
   const navigate = useNavigate();
 
@@ -64,7 +80,6 @@ export default function CanteenProfile() {
   const buildImgUrl = (path) =>
     path ? (path.startsWith('blob:') ? path : `http://localhost:5000${path}`) : null;
 
-  // Fetch profile using token from AuthContext
   useEffect(() => {
     if (!token) {
       navigate('/login');
@@ -78,7 +93,6 @@ export default function CanteenProfile() {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        // Expired / invalid token
         if (r.status === 401) {
           logout();
           navigate('/login');
@@ -91,7 +105,6 @@ export default function CanteenProfile() {
           setForm({
             ownerName:   j.data.ownerName   || '',
             canteenName: j.data.canteenName || '',
-            // Pre-fill email & phone from auth user if API doesn't return them
             email:       j.data.email       || user?.email || '',
             phone:       j.data.phone       || user?.phone || '',
             location:    j.data.location    || '',
@@ -111,6 +124,17 @@ export default function CanteenProfile() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    // Live-block numbers and symbols for ownerName and canteenName
+    if (name === 'ownerName' || name === 'canteenName') {
+      if (/[^a-zA-Z\s]/.test(value)) return;
+    }
+
+    // Live-block digits in description
+    if (name === 'description') {
+      if (/\d/.test(value)) return;
+    }
+
     setForm(f => ({ ...f, [name]: value }));
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: undefined }));
   };
@@ -167,8 +191,6 @@ export default function CanteenProfile() {
 
       if (j.data.image) setImgPreview(buildImgUrl(j.data.image));
 
-      // Update user in AuthContext (no direct localStorage manipulation)
-      // Call updateUser if your AuthContext exposes it, otherwise it's a no-op
       if (typeof updateUser === 'function') {
         updateUser({
           ...user,
@@ -281,7 +303,6 @@ export default function CanteenProfile() {
                     {profile.isActive ? 'Visible to Students' : 'Hidden'}
                   </span>
                 </div>
-                {/* Show role from auth */}
                 <div className="pt-2 border-t border-gray-100 dark:border-gray-700/50">
                   <p className="text-[10px] text-gray-400">Role</p>
                   <p className="text-xs font-bold text-gray-600 dark:text-gray-300 capitalize mt-0.5">
@@ -373,9 +394,17 @@ export default function CanteenProfile() {
               </label>
               <textarea name="description" value={form.description} onChange={handleChange}
                 rows={5} placeholder="Tell students about your canteen — what you serve, your specialty, etc."
-                className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400 resize-none transition-all" />
-              <p className="text-[10px] text-gray-400 mt-1 text-right">{form.description?.length || 0} / 500</p>
+                className={`w-full px-3 py-2.5 text-sm rounded-xl border ${errors.description ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 dark:border-gray-600 focus:ring-green-400'} bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 resize-none transition-all`} />
+              <div className="flex items-center justify-between mt-1">
+                {errors.description ? (
+                  <p className="text-[10px] text-red-500 flex items-center gap-1">
+                    <XCircle className="w-3 h-3" /> {errors.description}
+                  </p>
+                ) : <span />}
+                <p className="text-[10px] text-gray-400">{form.description?.length || 0} / 500</p>
+              </div>
             </div>
+
           </div>
         </div>
       </div>

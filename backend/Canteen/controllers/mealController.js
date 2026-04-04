@@ -1,12 +1,9 @@
-//backend/Canteen/controllers/mealController.js
-
 const mongoose = require('mongoose');
 const multer   = require('multer');
 const path     = require('path');
 const fs       = require('fs');
 const Meal     = require('../../models/Meal');
 
-// ── Helper: get canteen _id from logged-in user ───────────────────────────────
 const getCanteenId = async (userId) => {
   const canteen = await mongoose.connection.db.collection('canteens').findOne({
     owner: new mongoose.Types.ObjectId(userId),
@@ -14,7 +11,6 @@ const getCanteenId = async (userId) => {
   return canteen?._id || null;
 };
 
-// ── Multer ────────────────────────────────────────────────────────────────────
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, '../../uploads/meals');
@@ -37,7 +33,6 @@ const getMeals = async (req, res) => {
   try {
     const canteenId = await getCanteenId(req.user._id);
     if (!canteenId) return res.status(404).json({ success: false, message: 'Canteen not found' });
-
     const meals = await Meal.find({ canteen: canteenId.toString() }).sort({ createdAt: -1 });
     res.json({ success: true, data: meals });
   } catch (err) {
@@ -51,20 +46,47 @@ const addMeal = async (req, res) => {
     const canteenId = await getCanteenId(req.user._id);
     if (!canteenId) return res.status(404).json({ success: false, message: 'Canteen not found' });
 
-    const { name, description, category, basePrice, isAvailable, sizes } = req.body;
-    if (!name || !basePrice) {
-      return res.status(400).json({ success: false, message: 'Name and base price are required' });
+    const { name, description, category, basePrice, isAvailable, sizes, defaultSize } = req.body;
+
+    // ── Server-side validation ──────────────────────────────────────────────
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Meal name is required' });
     }
+    if (!/^[a-zA-Z\s]+$/.test(name.trim())) {
+      return res.status(400).json({ success: false, message: 'Meal name must contain letters only (no numbers or symbols)' });
+    }
+
+    if (!category) {
+      return res.status(400).json({ success: false, message: 'Category is required' });
+    }
+
+    if (!basePrice && basePrice !== 0) {
+      return res.status(400).json({ success: false, message: 'Base price is required' });
+    }
+    const parsedPrice = parseFloat(basePrice);
+    if (isNaN(parsedPrice) || parsedPrice < 0) {
+      return res.status(400).json({ success: false, message: 'Enter a valid base price' });
+    }
+
+    if (description?.trim() && !/^[a-zA-Z\s]+$/.test(description.trim())) {
+      return res.status(400).json({ success: false, message: 'Description must contain letters only (no numbers or symbols)' });
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+
     const meal = await Meal.create({
       canteen:     canteenId.toString(),
       name:        name.trim(),
       description: description?.trim() || '',
       category:    category || 'Other',
-      basePrice:   parseFloat(basePrice),
+      basePrice:   parsedPrice,
       isAvailable: isAvailable === 'true' || isAvailable === true,
+      defaultSize: defaultSize || 'Medium',
       sizes:       sizes ? JSON.parse(sizes) : {},
       image:       req.file ? `/uploads/meals/${req.file.filename}` : null,
     });
+
     res.json({ success: true, message: 'Meal added', data: meal });
   } catch (err) {
     console.log('addMeal ERROR:', err.message);
@@ -75,13 +97,42 @@ const addMeal = async (req, res) => {
 // ── PUT /api/canteen/meals/:id ────────────────────────────────────────────────
 const updateMeal = async (req, res) => {
   try {
-    const { name, description, category, basePrice, isAvailable, sizes } = req.body;
+    const { name, description, category, basePrice, isAvailable, sizes, defaultSize } = req.body;
+
+    // ── Server-side validation ──────────────────────────────────────────────
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Meal name is required' });
+    }
+    if (!/^[a-zA-Z\s]+$/.test(name.trim())) {
+      return res.status(400).json({ success: false, message: 'Meal name must contain letters only (no numbers or symbols)' });
+    }
+
+    if (!category) {
+      return res.status(400).json({ success: false, message: 'Category is required' });
+    }
+
+    if (!basePrice && basePrice !== 0) {
+      return res.status(400).json({ success: false, message: 'Base price is required' });
+    }
+    const parsedPrice = parseFloat(basePrice);
+    if (isNaN(parsedPrice) || parsedPrice < 0) {
+      return res.status(400).json({ success: false, message: 'Enter a valid base price' });
+    }
+
+    if (description?.trim() && !/^[a-zA-Z\s]+$/.test(description.trim())) {
+      return res.status(400).json({ success: false, message: 'Description must contain letters only (no numbers or symbols)' });
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+
     const updateData = {
-      name:        name?.trim(),
+      name:        name.trim(),
       description: description?.trim() || '',
       category:    category || 'Other',
-      basePrice:   parseFloat(basePrice),
+      basePrice:   parsedPrice,
       isAvailable: isAvailable === 'true' || isAvailable === true,
+      defaultSize: defaultSize || 'Medium',
       sizes:       sizes ? JSON.parse(sizes) : {},
     };
     if (req.file) updateData.image = `/uploads/meals/${req.file.filename}`;

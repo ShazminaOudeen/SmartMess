@@ -1,5 +1,3 @@
-//frontend/src/pages/Canteen/MealsPage.jsx
-
 import { useState, useEffect, useRef } from 'react';
 import {
   Plus, Search, Filter, Edit2, Trash2, X, Save, Loader2,
@@ -19,7 +17,12 @@ const API = '/api/canteen/meals';
 const EMPTY_FORM = {
   name: '', description: '', category: 'Rice', basePrice: '',
   isAvailable: true,
-  sizes: { Small: { enabled: false, price: '' }, Medium: { enabled: false, price: '' }, Large: { enabled: false, price: '' } },
+  defaultSize: 'Medium',
+  sizes: {
+    Small:  { enabled: false, price: '' },
+    Medium: { enabled: true,  price: '' },  // Medium always on
+    Large:  { enabled: false, price: '' },
+  },
 };
 
 // Toast Notification Component
@@ -36,12 +39,12 @@ function Toast({ toast, onClose }) {
   return (
     <div className="fixed top-5 right-5 z-[100] animate-slide-in">
       <div className={`px-4 py-3 rounded-xl shadow-2xl text-sm font-semibold flex items-center gap-3 ${
-        toast.type === 'error' 
-          ? 'bg-gradient-to-r from-red-500 to-red-600' 
+        toast.type === 'error'
+          ? 'bg-gradient-to-r from-red-500 to-red-600'
           : 'bg-gradient-to-r from-emerald-500 to-green-600'
       } text-white min-w-[300px]`}>
-        {toast.type === 'error' 
-          ? <XCircle className="w-5 h-5 flex-shrink-0" /> 
+        {toast.type === 'error'
+          ? <XCircle className="w-5 h-5 flex-shrink-0" />
           : <CheckCircle className="w-5 h-5 flex-shrink-0" />}
         <span className="flex-1">{toast.msg}</span>
         <button onClick={onClose} className="hover:bg-white/20 rounded-lg p-1 transition-colors">
@@ -52,17 +55,15 @@ function Toast({ toast, onClose }) {
   );
 }
 
-// Category Badge Component
 function CategoryBadge({ category }) {
   const colors = {
-    Rice: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border-amber-200 dark:border-amber-500/30',
-    Snacks: 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400 border-orange-200 dark:border-orange-500/30',
-    Desserts: 'bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-400 border-pink-200 dark:border-pink-500/30',
-    Drinks: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 border-blue-200 dark:border-blue-500/30',
+    Rice:      'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border-amber-200 dark:border-amber-500/30',
+    Snacks:    'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400 border-orange-200 dark:border-orange-500/30',
+    Desserts:  'bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-400 border-pink-200 dark:border-pink-500/30',
+    Drinks:    'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 border-blue-200 dark:border-blue-500/30',
     Breakfast: 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400 border-purple-200 dark:border-purple-500/30',
-    Other: 'bg-gray-100 text-gray-600 dark:bg-gray-500/20 dark:text-gray-400 border-gray-200 dark:border-gray-500/30',
+    Other:     'bg-gray-100 text-gray-600 dark:bg-gray-500/20 dark:text-gray-400 border-gray-200 dark:border-gray-500/30',
   };
-  
   return (
     <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${colors[category] || colors.Other}`}>
       {category}
@@ -70,8 +71,7 @@ function CategoryBadge({ category }) {
   );
 }
 
-// Stat Card Component
-function StatCard({ icon: Icon, label, value, color, trend }) {
+function StatCard({ icon: Icon, label, value, color }) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
       <div className="flex items-center gap-4">
@@ -80,23 +80,13 @@ function StatCard({ icon: Icon, label, value, color, trend }) {
         </div>
         <div className="flex-1">
           <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
-            {trend && (
-              <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${
-                trend > 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
-              }`}>
-                {trend > 0 ? '+' : ''}{trend}%
-              </span>
-            )}
-          </div>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{value}</p>
         </div>
       </div>
     </div>
   );
 }
 
-// View Toggle Component
 function ViewToggle({ view, onChange }) {
   return (
     <div className="flex items-center gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
@@ -124,39 +114,34 @@ function ViewToggle({ view, onChange }) {
   );
 }
 
-// Main Component
 export default function MealsPage() {
   const { theme } = useTheme();
-  const dark = theme === 'dark';
-  
-  const [meals, setMeals] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null);
-  const [search, setSearch] = useState('');
-  const [filterCat, setFilterCat] = useState('All');
-  const [filterAvail, setFilterAvail] = useState('All');
-  const [showModal, setShowModal] = useState(false);
-  const [editMeal, setEditMeal] = useState(null);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [imgFile, setImgFile] = useState(null);
-  const [imgPreview, setImgPreview] = useState(null);
-  const [deleteId, setDeleteId] = useState(null);
-  const [viewMode, setViewMode] = useState('grid');
-  const [showFilters, setShowFilters] = useState(false);
+
+  const [meals, setMeals]               = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [saving, setSaving]             = useState(false);
+  const [toast, setToast]               = useState(null);
+  const [search, setSearch]             = useState('');
+  const [filterCat, setFilterCat]       = useState('All');
+  const [filterAvail, setFilterAvail]   = useState('All');
+  const [showModal, setShowModal]       = useState(false);
+  const [editMeal, setEditMeal]         = useState(null);
+  const [form, setForm]                 = useState(EMPTY_FORM);
+  const [formErrors, setFormErrors]     = useState({});
+  const [imgFile, setImgFile]           = useState(null);
+  const [imgPreview, setImgPreview]     = useState(null);
+  const [deleteId, setDeleteId]         = useState(null);
+  const [viewMode, setViewMode]         = useState('grid');
+  const [showFilters, setShowFilters]   = useState(false);
   const [selectedMeals, setSelectedMeals] = useState([]);
-  const [sortBy, setSortBy] = useState('name');
-  const [sortOrder, setSortOrder] = useState('asc');
-  
+  const [sortBy, setSortBy]             = useState('name');
+  const [sortOrder, setSortOrder]       = useState('asc');
+
   const fileRef = useRef();
 
-  const showToastMessage = (msg, type = 'success') => {
-    setToast({ msg, type });
-  };
-
+  const showToastMessage = (msg, type = 'success') => setToast({ msg, type });
   const buildImgUrl = (p) => p ? `http://localhost:5000${p}` : null;
 
-  // Fetch meals
   const fetchMeals = async () => {
     setLoading(true);
     try {
@@ -164,25 +149,24 @@ export default function MealsPage() {
       const r = await fetch(API, { headers: { Authorization: `Bearer ${token}` } });
       const j = await r.json();
       if (j.success) setMeals(j.data);
-    } catch { 
-      showToastMessage('Failed to load meals', 'error'); 
-    } finally { 
-      setLoading(false); 
+    } catch {
+      showToastMessage('Failed to load meals', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => { fetchMeals(); }, []);
 
-  // Calculate stats
-  const totalMeals = meals.length;
-  const availableMeals = meals.filter(m => m.isAvailable).length;
-  const outOfStockMeals = totalMeals - availableMeals;
-  const totalCategories = new Set(meals.map(m => m.category)).size;
+  const totalMeals       = meals.length;
+  const availableMeals   = meals.filter(m => m.isAvailable).length;
+  const outOfStockMeals  = totalMeals - availableMeals;
+  const totalCategories  = new Set(meals.map(m => m.category)).size;
 
-  // Open modal
   const openAdd = () => {
     setEditMeal(null);
     setForm(EMPTY_FORM);
+    setFormErrors({});
     setImgFile(null);
     setImgPreview(null);
     setShowModal(true);
@@ -190,16 +174,18 @@ export default function MealsPage() {
 
   const openEdit = (meal) => {
     setEditMeal(meal);
+    setFormErrors({});
     setForm({
       name:        meal.name        || '',
       description: meal.description || '',
       category:    meal.category    || 'Rice',
-      basePrice:   meal.basePrice   || '',
+      basePrice:   meal.basePrice !== undefined ? String(meal.basePrice) : '',
       isAvailable: meal.isAvailable ?? true,
+      defaultSize: meal.defaultSize || 'Medium',
       sizes: {
-        Small:  { enabled: meal.sizes?.Small?.enabled  || false, price: meal.sizes?.Small?.price  || '' },
-        Medium: { enabled: meal.sizes?.Medium?.enabled || false, price: meal.sizes?.Medium?.price || '' },
-        Large:  { enabled: meal.sizes?.Large?.enabled  || false, price: meal.sizes?.Large?.price  || '' },
+        Small:  { enabled: meal.sizes?.Small?.enabled  || false, price: meal.sizes?.Small?.price  !== undefined ? String(meal.sizes.Small.price)  : '' },
+        Medium: { enabled: true,                                  price: meal.sizes?.Medium?.price !== undefined ? String(meal.sizes.Medium.price) : '' },
+        Large:  { enabled: meal.sizes?.Large?.enabled  || false, price: meal.sizes?.Large?.price  !== undefined ? String(meal.sizes.Large.price)  : '' },
       },
     });
     setImgPreview(meal.image ? buildImgUrl(meal.image) : null);
@@ -207,42 +193,114 @@ export default function MealsPage() {
     setShowModal(true);
   };
 
-  const closeModal = () => { 
-    setShowModal(false); 
+  const closeModal = () => {
+    setShowModal(false);
     setEditMeal(null);
     setImgPreview(null);
     setImgFile(null);
+    setFormErrors({});
   };
 
-  const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+  // ── Live-block bad characters + auto-fill Medium price from basePrice ────────
+  const handleChange = (e) => {
+    const { name, value } = e.target;
 
-  const handleSizeToggle = (size) =>
-    setForm(f => ({ ...f, sizes: { ...f.sizes, [size]: { ...f.sizes[size], enabled: !f.sizes[size].enabled } } }));
+    // Letters-only fields — block numbers and symbols live
+    if (name === 'name' || name === 'description') {
+      if (/[^a-zA-Z\s]/.test(value)) return;
+    }
 
-  const handleSizePrice = (size, val) =>
+    // basePrice — only digits and one decimal point allowed
+    if (name === 'basePrice') {
+      if (value !== '' && !/^\d*\.?\d*$/.test(value)) return;
+
+      // Auto-fill Medium price when base price changes
+      setForm(f => ({
+        ...f,
+        basePrice: value,
+        sizes: {
+          ...f.sizes,
+          Medium: { ...f.sizes.Medium, price: value },
+        },
+      }));
+      if (formErrors.basePrice) setFormErrors(prev => ({ ...prev, basePrice: undefined }));
+      return;
+    }
+
+    setForm(f => ({ ...f, [name]: value }));
+    if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: undefined }));
+  };
+
+  const handleSizeToggle = (size) => {
+    // Medium is always on — can't toggle it off
+    if (size === 'Medium') return;
+    setForm(f => ({
+      ...f,
+      sizes: { ...f.sizes, [size]: { ...f.sizes[size], enabled: !f.sizes[size].enabled } },
+    }));
+  };
+
+  const handleSizePrice = (size, val) => {
+    if (val !== '' && !/^\d*\.?\d*$/.test(val)) return;
     setForm(f => ({ ...f, sizes: { ...f.sizes, [size]: { ...f.sizes[size], price: val } } }));
+  };
 
   const handleImage = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { 
-      showToastMessage('Image must be under 5MB', 'error'); 
-      return; 
-    }
+    if (file.size > 5 * 1024 * 1024) { showToastMessage('Image must be under 5MB', 'error'); return; }
     setImgFile(file);
     setImgPreview(URL.createObjectURL(file));
   };
 
-  // Save meal
+  // ── Validate form before save ─────────────────────────────────────────────
+  const validateForm = () => {
+    const errors = {};
+
+    if (!form.name.trim()) {
+      errors.name = 'Meal name is required';
+    } else if (!/^[a-zA-Z\s]+$/.test(form.name.trim())) {
+      errors.name = 'Meal name must contain letters only (no numbers or symbols)';
+    }
+
+    if (!form.category) {
+      errors.category = 'Category is required';
+    }
+
+    if (!form.basePrice || form.basePrice === '') {
+      errors.basePrice = 'Base price is required';
+    } else if (isNaN(parseFloat(form.basePrice)) || parseFloat(form.basePrice) < 0) {
+      errors.basePrice = 'Enter a valid price';
+    }
+
+    if (form.description.trim() && !/^[a-zA-Z\s]+$/.test(form.description.trim())) {
+      errors.description = 'Description must contain letters only (no numbers or symbols)';
+    }
+
+    // Validate enabled size prices
+    SIZES.forEach(size => {
+      if (form.sizes[size].enabled) {
+        const p = form.sizes[size].price;
+        if (p === '' || p === undefined) {
+          errors[`size_${size}`] = `${size} price is required when enabled`;
+        } else if (isNaN(parseFloat(p)) || parseFloat(p) < 0) {
+          errors[`size_${size}`] = `Enter a valid ${size} price`;
+        }
+      }
+    });
+
+    return errors;
+  };
+
+  // ── Save meal ─────────────────────────────────────────────────────────────
   const handleSave = async () => {
-    if (!form.name.trim()) { 
-      showToastMessage('Meal name is required', 'error'); 
-      return; 
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      showToastMessage('Please fix the errors before saving', 'error');
+      return;
     }
-    if (!form.basePrice) { 
-      showToastMessage('Base price is required', 'error'); 
-      return; 
-    }
+
     setSaving(true);
     try {
       const token = localStorage.getItem('token');
@@ -250,8 +308,9 @@ export default function MealsPage() {
       fd.append('name',        form.name.trim());
       fd.append('description', form.description.trim());
       fd.append('category',    form.category);
-      fd.append('basePrice',   form.basePrice);
+      fd.append('basePrice',   form.basePrice);   // sent as-is — no parseFloat here
       fd.append('isAvailable', form.isAvailable);
+      fd.append('defaultSize', form.defaultSize);
       fd.append('sizes',       JSON.stringify(form.sizes));
       if (imgFile) fd.append('image', imgFile);
 
@@ -266,12 +325,11 @@ export default function MealsPage() {
       fetchMeals();
     } catch (err) {
       showToastMessage(err.message || 'Failed to save', 'error');
-    } finally { 
-      setSaving(false); 
+    } finally {
+      setSaving(false);
     }
   };
 
-  // Delete meal
   const handleDelete = async (id) => {
     try {
       const token = localStorage.getItem('token');
@@ -281,28 +339,26 @@ export default function MealsPage() {
       showToastMessage('Meal deleted successfully!');
       setDeleteId(null);
       fetchMeals();
-    } catch (err) { 
-      showToastMessage(err.message || 'Failed to delete', 'error'); 
+    } catch (err) {
+      showToastMessage(err.message || 'Failed to delete', 'error');
     }
   };
 
-  // Bulk delete
   const handleBulkDelete = async () => {
     if (selectedMeals.length === 0) return;
     try {
       const token = localStorage.getItem('token');
-      await Promise.all(selectedMeals.map(id => 
+      await Promise.all(selectedMeals.map(id =>
         fetch(`${API}/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
       ));
       showToastMessage(`${selectedMeals.length} meals deleted successfully!`);
       setSelectedMeals([]);
       fetchMeals();
-    } catch (err) {
+    } catch {
       showToastMessage('Failed to delete some meals', 'error');
     }
   };
 
-  // Toggle availability
   const handleToggleAvail = async (meal) => {
     try {
       const token = localStorage.getItem('token');
@@ -313,17 +369,16 @@ export default function MealsPage() {
       });
       fetchMeals();
       showToastMessage(`Meal marked as ${!meal.isAvailable ? 'available' : 'out of stock'}`);
-    } catch { 
-      showToastMessage('Failed to update', 'error'); 
+    } catch {
+      showToastMessage('Failed to update', 'error');
     }
   };
 
-  // Bulk toggle availability
   const handleBulkToggle = async (makeAvailable) => {
     if (selectedMeals.length === 0) return;
     try {
       const token = localStorage.getItem('token');
-      await Promise.all(selectedMeals.map(id => 
+      await Promise.all(selectedMeals.map(id =>
         fetch(`${API}/${id}/availability`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -333,52 +388,38 @@ export default function MealsPage() {
       showToastMessage(`${selectedMeals.length} meals updated!`);
       setSelectedMeals([]);
       fetchMeals();
-    } catch (err) {
+    } catch {
       showToastMessage('Failed to update meals', 'error');
     }
   };
 
-  // PDF export
   const exportPDF = () => {
     const doc = new jsPDF();
-    
-    // Header
     doc.setFillColor(22, 163, 74);
     doc.rect(0, 0, 210, 40, 'F');
-    
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
     doc.text('SmartMess', 105, 20, { align: 'center' });
-    
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
     doc.text('Meal Inventory Report', 105, 30, { align: 'center' });
-    
     doc.setFontSize(8);
     doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 38, { align: 'center' });
-
-    // Stats
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text('Summary', 14, 55);
-    
     doc.setFont('helvetica', 'normal');
     doc.text(`Total Meals: ${totalMeals}`, 14, 63);
     doc.text(`Available: ${availableMeals}`, 14, 71);
     doc.text(`Out of Stock: ${outOfStockMeals}`, 14, 79);
     doc.text(`Categories: ${totalCategories}`, 14, 87);
-
-    // Table
     const rows = filteredMeals.map(m => [
-      m.name,
-      m.category,
-      `Rs. ${m.basePrice}`,
+      m.name, m.category, `Rs. ${m.basePrice}`,
       m.isAvailable ? 'Available' : 'Out of Stock',
       m.description?.substring(0, 30) || '-',
     ]);
-
     autoTable(doc, {
       startY: 100,
       head: [['Meal Name', 'Category', 'Base Price', 'Status', 'Description']],
@@ -387,48 +428,36 @@ export default function MealsPage() {
       alternateRowStyles: { fillColor: [240, 253, 244] },
       styles: { fontSize: 9 },
     });
-
     doc.save('meal-inventory-report.pdf');
   };
 
-  // Sort and filter
   const filteredMeals = meals
     .filter(m => {
       const matchSearch = m.name.toLowerCase().includes(search.toLowerCase()) ||
         m.category.toLowerCase().includes(search.toLowerCase()) ||
         m.description?.toLowerCase().includes(search.toLowerCase());
-      const matchCat = filterCat === 'All' || m.category === filterCat;
+      const matchCat   = filterCat   === 'All' || m.category === filterCat;
       const matchAvail = filterAvail === 'All' ||
-        (filterAvail === 'Available' && m.isAvailable) ||
+        (filterAvail === 'Available'    && m.isAvailable) ||
         (filterAvail === 'Out of Stock' && !m.isAvailable);
       return matchSearch && matchCat && matchAvail;
     })
     .sort((a, b) => {
       let aVal, bVal;
       switch (sortBy) {
-        case 'name':
-          aVal = a.name;
-          bVal = b.name;
-          break;
-        case 'price':
-          aVal = parseFloat(a.basePrice);
-          bVal = parseFloat(b.basePrice);
-          break;
-        case 'category':
-          aVal = a.category;
-          bVal = b.category;
-          break;
-        default:
-          aVal = a.name;
-          bVal = b.name;
+        case 'price':    aVal = parseFloat(a.basePrice); bVal = parseFloat(b.basePrice); break;
+        case 'category': aVal = a.category; bVal = b.category; break;
+        default:         aVal = a.name;     bVal = b.name;
       }
-      
-      if (sortOrder === 'asc') {
-        return aVal > bVal ? 1 : -1;
-      } else {
-        return aVal < bVal ? 1 : -1;
-      }
+      return sortOrder === 'asc' ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
     });
+
+  // ── Inline error helper ───────────────────────────────────────────────────
+  const FieldError = ({ field }) => formErrors[field] ? (
+    <p className="text-[11px] text-red-500 mt-1 flex items-center gap-1">
+      <XCircle className="w-3 h-3" /> {formErrors[field]}
+    </p>
+  ) : null;
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
@@ -439,154 +468,95 @@ export default function MealsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Meal Management</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Manage your canteen's menu items
-            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage your canteen's menu items</p>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={exportPDF}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
-            >
-              <Download className="w-4 h-4" />
-              Export PDF
+            <button onClick={exportPDF}
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
+              <Download className="w-4 h-4" /> Export PDF
             </button>
-            <button
-              onClick={openAdd}
-              className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-green-600/20"
-            >
-              <Plus className="w-4 h-4" />
-              Add New Meal
+            <button onClick={openAdd}
+              className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-green-600/20">
+              <Plus className="w-4 h-4" /> Add New Meal
             </button>
           </div>
         </div>
-
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-          <StatCard icon={Utensils} label="Total Meals" value={totalMeals} color="blue" />
-          <StatCard icon={CheckCircle} label="Available" value={availableMeals} color="green" />
-          <StatCard icon={XCircle} label="Out of Stock" value={outOfStockMeals} color="red" />
-          <StatCard icon={Tag} label="Categories" value={totalCategories} color="purple" />
+          <StatCard icon={Utensils}      label="Total Meals"    value={totalMeals}      color="blue"   />
+          <StatCard icon={CheckCircle}   label="Available"      value={availableMeals}  color="green"  />
+          <StatCard icon={XCircle}       label="Out of Stock"   value={outOfStockMeals} color="red"    />
+          <StatCard icon={Tag}           label="Categories"     value={totalCategories} color="purple" />
         </div>
       </div>
 
       {/* Filters Bar */}
       <div className="flex-shrink-0 px-6 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Search */}
           <div className="relative flex-1 min-w-[250px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
+            <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search meals by name, category..."
-              className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
-            />
+              className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all" />
           </div>
-
-          {/* Filters Toggle */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
-          >
-            <Filter className="w-4 h-4" />
-            Filters
+          <button onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-xl border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
+            <Filter className="w-4 h-4" /> Filters
             {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
-
-          {/* View Toggle */}
           <ViewToggle view={viewMode} onChange={setViewMode} />
-
-          {/* Sort Dropdown */}
-          <select
-            value={`${sortBy}-${sortOrder}`}
-            onChange={(e) => {
-              const [by, order] = e.target.value.split('-');
-              setSortBy(by);
-              setSortOrder(order);
-            }}
-            className="px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
+          <select value={`${sortBy}-${sortOrder}`}
+            onChange={(e) => { const [by, order] = e.target.value.split('-'); setSortBy(by); setSortOrder(order); }}
+            className="px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500">
             <option value="name-asc">Name (A-Z)</option>
             <option value="name-desc">Name (Z-A)</option>
             <option value="price-asc">Price (Low to High)</option>
             <option value="price-desc">Price (High to Low)</option>
             <option value="category-asc">Category (A-Z)</option>
           </select>
-
-          {/* Bulk Actions */}
           {selectedMeals.length > 0 && (
             <div className="flex items-center gap-2 ml-auto">
-              <span className="text-sm text-gray-500">
-                {selectedMeals.length} selected
-              </span>
-              <button
-                onClick={() => handleBulkToggle(true)}
-                className="px-3 py-2 text-sm font-medium rounded-xl bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 transition-all"
-              >
+              <span className="text-sm text-gray-500">{selectedMeals.length} selected</span>
+              <button onClick={() => handleBulkToggle(true)}
+                className="px-3 py-2 text-sm font-medium rounded-xl bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 transition-all">
                 Set Available
               </button>
-              <button
-                onClick={() => handleBulkToggle(false)}
-                className="px-3 py-2 text-sm font-medium rounded-xl bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 transition-all"
-              >
+              <button onClick={() => handleBulkToggle(false)}
+                className="px-3 py-2 text-sm font-medium rounded-xl bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 transition-all">
                 Set Out of Stock
               </button>
-              <button
-                onClick={handleBulkDelete}
-                className="px-3 py-2 text-sm font-medium rounded-xl bg-red-500 text-white hover:bg-red-600 transition-all"
-              >
+              <button onClick={handleBulkDelete}
+                className="px-3 py-2 text-sm font-medium rounded-xl bg-red-500 text-white hover:bg-red-600 transition-all">
                 Delete Selected
               </button>
             </div>
           )}
         </div>
 
-        {/* Advanced Filters */}
         {showFilters && (
           <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-            {/* Category filter */}
             <div className="relative">
-              <select
-                value={filterCat}
-                onChange={e => setFilterCat(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
+              <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500">
                 <option value="All">All Categories</option>
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
-
-            {/* Availability filter */}
             <div className="relative">
-              <select
-                value={filterAvail}
-                onChange={e => setFilterAvail(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
+              <select value={filterAvail} onChange={e => setFilterAvail(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500">
                 <option value="All">All Status</option>
                 <option value="Available">Available</option>
                 <option value="Out of Stock">Out of Stock</option>
               </select>
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
-
-            {/* Clear Filters */}
             {(search || filterCat !== 'All' || filterAvail !== 'All') && (
-              <button
-                onClick={() => {
-                  setSearch('');
-                  setFilterCat('All');
-                  setFilterAvail('All');
-                }}
-                className="text-sm text-red-500 hover:text-red-600 font-medium flex items-center gap-1"
-              >
-                <X className="w-4 h-4" />
-                Clear Filters
+              <button onClick={() => { setSearch(''); setFilterCat('All'); setFilterAvail('All'); }}
+                className="text-sm text-red-500 hover:text-red-600 font-medium flex items-center gap-1">
+                <X className="w-4 h-4" /> Clear Filters
               </button>
             )}
-
             <span className="text-sm text-gray-500 ml-auto">
               {filteredMeals.length} {filteredMeals.length === 1 ? 'result' : 'results'}
             </span>
@@ -608,124 +578,72 @@ export default function MealsPage() {
             </div>
             <p className="font-semibold text-lg text-gray-600 dark:text-gray-300">No meals found</p>
             <p className="text-sm mt-1">Try adjusting your filters or add a new meal</p>
-            <button
-              onClick={openAdd}
-              className="mt-4 px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition-all"
-            >
+            <button onClick={openAdd}
+              className="mt-4 px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition-all">
               Add Your First Meal
             </button>
           </div>
         ) : viewMode === 'grid' ? (
-          // Grid View
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {filteredMeals.map(meal => (
-              <div
-                key={meal._id}
-                className="group bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1"
-              >
-                {/* Image */}
+              <div key={meal._id}
+                className="group bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1">
                 <div className="relative aspect-video bg-gray-100 dark:bg-gray-700">
                   {meal.image ? (
-                    <img
-                      src={buildImgUrl(meal.image)}
-                      alt={meal.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
+                    <img src={buildImgUrl(meal.image)} alt={meal.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800">
                       <Utensils className="w-8 h-8 text-gray-400" />
                     </div>
                   )}
-                  
-                  {/* Status Badge */}
                   <div className="absolute top-3 right-3">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium shadow-lg ${
-                      meal.isAvailable
-                        ? 'bg-green-500 text-white'
-                        : 'bg-red-500 text-white'
-                    }`}>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium shadow-lg ${meal.isAvailable ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
                       {meal.isAvailable ? 'Available' : 'Out of Stock'}
                     </span>
                   </div>
-
-                  {/* Category Badge */}
                   <div className="absolute bottom-3 left-3">
                     <CategoryBadge category={meal.category} />
                   </div>
-
-                  {/* Select Checkbox */}
                   <div className="absolute top-3 left-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedMeals.includes(meal._id)}
+                    <input type="checkbox" checked={selectedMeals.includes(meal._id)}
                       onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedMeals([...selectedMeals, meal._id]);
-                        } else {
-                          setSelectedMeals(selectedMeals.filter(id => id !== meal._id));
-                        }
+                        if (e.target.checked) setSelectedMeals([...selectedMeals, meal._id]);
+                        else setSelectedMeals(selectedMeals.filter(id => id !== meal._id));
                       }}
-                      className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                    />
+                      className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500" />
                   </div>
                 </div>
-
-                {/* Content */}
                 <div className="p-4">
                   <div className="flex items-start justify-between mb-2">
                     <h3 className="font-semibold text-gray-900 dark:text-white">{meal.name}</h3>
-                    <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                      Rs. {meal.basePrice}
-                    </span>
+                    <span className="text-lg font-bold text-green-600 dark:text-green-400">Rs. {meal.basePrice}</span>
                   </div>
-
                   {meal.description && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">
-                      {meal.description}
-                    </p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">{meal.description}</p>
                   )}
-
-                  {/* Size indicators */}
                   {Object.values(meal.sizes || {}).some(s => s.enabled) && (
                     <div className="flex flex-wrap gap-1 mb-3">
                       {SIZES.map(s => meal.sizes?.[s]?.enabled && (
-                        <span
-                          key={s}
-                          className="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg"
-                        >
+                        <span key={s} className="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg">
                           {s}: Rs. {meal.sizes[s].price}
                         </span>
                       ))}
                     </div>
                   )}
-
-                  {/* Actions */}
                   <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
-                    <button
-                      onClick={() => handleToggleAvail(meal)}
-                      className={`p-2 rounded-lg transition-colors ${
-                        meal.isAvailable
-                          ? 'text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20'
-                          : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                      }`}
-                    >
+                    <button onClick={() => handleToggleAvail(meal)}
+                      className={`p-2 rounded-lg transition-colors ${meal.isAvailable ? 'text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
                       {meal.isAvailable ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                     </button>
                     <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => openEdit(meal)}
-                        className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                      >
+                      <button onClick={() => openEdit(meal)}
+                        className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
                         <Edit2 className="w-4 h-4" />
                       </button>
-                      <button
-                        onClick={() => setDeleteId(meal._id)}
-                        className="p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                      >
+                      <button onClick={() => setDeleteId(meal._id)}
+                        className="p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                         <Trash2 className="w-4 h-4" />
-                      </button>
-                      <button className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                        <MoreVertical className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -734,24 +652,18 @@ export default function MealsPage() {
             ))}
           </div>
         ) : (
-          // List View
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700/50">
                 <tr>
                   <th className="px-4 py-3 text-left">
-                    <input
-                      type="checkbox"
+                    <input type="checkbox"
                       checked={selectedMeals.length === filteredMeals.length}
                       onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedMeals(filteredMeals.map(m => m._id));
-                        } else {
-                          setSelectedMeals([]);
-                        }
+                        if (e.target.checked) setSelectedMeals(filteredMeals.map(m => m._id));
+                        else setSelectedMeals([]);
                       }}
-                      className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                    />
+                      className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500" />
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-300">Image</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-300">Name</th>
@@ -766,18 +678,12 @@ export default function MealsPage() {
                 {filteredMeals.map(meal => (
                   <tr key={meal._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                     <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedMeals.includes(meal._id)}
+                      <input type="checkbox" checked={selectedMeals.includes(meal._id)}
                         onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedMeals([...selectedMeals, meal._id]);
-                          } else {
-                            setSelectedMeals(selectedMeals.filter(id => id !== meal._id));
-                          }
+                          if (e.target.checked) setSelectedMeals([...selectedMeals, meal._id]);
+                          else setSelectedMeals(selectedMeals.filter(id => id !== meal._id));
                         }}
-                        className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                      />
+                        className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500" />
                     </td>
                     <td className="px-4 py-3">
                       <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 overflow-hidden">
@@ -791,12 +697,8 @@ export default function MealsPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{meal.name}</td>
-                    <td className="px-4 py-3">
-                      <CategoryBadge category={meal.category} />
-                    </td>
-                    <td className="px-4 py-3 text-sm font-semibold text-green-600 dark:text-green-400">
-                      Rs. {meal.basePrice}
-                    </td>
+                    <td className="px-4 py-3"><CategoryBadge category={meal.category} /></td>
+                    <td className="px-4 py-3 text-sm font-semibold text-green-600 dark:text-green-400">Rs. {meal.basePrice}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
                         {SIZES.map(s => meal.sizes?.[s]?.enabled && (
@@ -807,32 +709,22 @@ export default function MealsPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        meal.isAvailable
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                      }`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${meal.isAvailable ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
                         {meal.isAvailable ? 'Available' : 'Out of Stock'}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleToggleAvail(meal)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
-                        >
+                        <button onClick={() => handleToggleAvail(meal)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
                           {meal.isAvailable ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                         </button>
-                        <button
-                          onClick={() => openEdit(meal)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                        >
+                        <button onClick={() => openEdit(meal)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => setDeleteId(meal._id)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                        >
+                        <button onClick={() => setDeleteId(meal._id)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -845,34 +737,29 @@ export default function MealsPage() {
         )}
       </div>
 
-      {/* Add/Edit Modal */}
+      {/* ── Add/Edit Modal ──────────────────────────────────────────────────── */}
       {showModal && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+
             {/* Modal Header */}
             <div className="sticky top-0 bg-white dark:bg-gray-800 z-10 px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                 {editMeal ? 'Edit Meal' : 'Add New Meal'}
               </h2>
-              <button
-                onClick={closeModal}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
+              <button onClick={closeModal}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
 
             {/* Modal Body */}
             <div className="p-6 space-y-6">
+
               {/* Image Upload */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Meal Image
-                </label>
-                <div
-                  className="relative group cursor-pointer"
-                  onClick={() => fileRef.current?.click()}
-                >
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Meal Image</label>
+                <div className="relative group cursor-pointer" onClick={() => fileRef.current?.click()}>
                   {imgPreview ? (
                     <div className="relative rounded-xl overflow-hidden aspect-video">
                       <img src={imgPreview} alt="Preview" className="w-full h-full object-cover" />
@@ -886,128 +773,133 @@ export default function MealsPage() {
                       <p className="text-sm text-gray-500">Click to upload image (max 5MB)</p>
                     </div>
                   )}
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImage}
-                    className="hidden"
-                  />
+                  <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden" />
                 </div>
               </div>
 
-              {/* Basic Info */}
+              {/* Meal Name & Category */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Meal Name *
+                    Meal Name <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    placeholder="e.g., Chicken Rice & Curry"
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
-                  />
+                  <input name="name" value={form.name} onChange={handleChange}
+                    placeholder="e.g., Chicken Rice and Curry"
+                    className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.name ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 dark:border-gray-600 focus:ring-green-500'} bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all`} />
+                  <FieldError field="name" />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Category *
+                    Category <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <select
-                      name="category"
-                      value={form.category}
-                      onChange={handleChange}
-                      className="w-full appearance-none px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-                    >
-                      {CATEGORIES.map(c => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
+                    <select name="category" value={form.category} onChange={handleChange}
+                      className={`w-full appearance-none px-4 py-2.5 rounded-xl border ${formErrors.category ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 dark:border-gray-600 focus:ring-green-500'} bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:outline-none focus:ring-2`}>
+                      {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                   </div>
+                  <FieldError field="category" />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Base Price (Rs.) *
+                    Base Price (Rs.) <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    name="basePrice"
-                    value={form.basePrice}
-                    onChange={handleChange}
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
+                  <input name="basePrice" value={form.basePrice} onChange={handleChange}
+                    type="text" inputMode="decimal" placeholder="e.g. 250"
+                    className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.basePrice ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 dark:border-gray-600 focus:ring-green-500'} bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all`} />
+                  <FieldError field="basePrice" />
+                  {!formErrors.basePrice && form.basePrice && (
+                    <p className="text-[11px] text-green-600 mt-1">✓ Auto-filled as Medium price below</p>
+                  )}
                 </div>
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Description
-                </label>
-                <textarea
-                  name="description"
-                  value={form.description}
-                  onChange={handleChange}
-                  rows={3}
-                  placeholder="Describe the meal ingredients, preparation style, etc..."
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+                <textarea name="description" value={form.description} onChange={handleChange}
+                  rows={3} placeholder="Describe the meal ingredients, preparation style, etc..."
+                  className={`w-full px-4 py-2.5 rounded-xl border ${formErrors.description ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 dark:border-gray-600 focus:ring-green-500'} bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 resize-none transition-all`} />
+                <FieldError field="description" />
               </div>
 
-              {/* Sizes */}
+              {/* Default Size Selector */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Default Size <span className="text-xs text-gray-400">(which size is shown as primary?)</span>
+                </label>
+                <div className="flex gap-2">
+                  {SIZES.map(size => (
+                    <button key={size} type="button"
+                      onClick={() => setForm(f => ({ ...f, defaultSize: size }))}
+                      className={`flex-1 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${
+                        form.defaultSize === size
+                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
+                          : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-300'
+                      }`}>
+                      {size}
+                      {form.defaultSize === size && <span className="ml-1 text-xs">(default)</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Size Variations */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Size Variations & Prices
                 </label>
+                <p className="text-xs text-gray-400 mb-3">Medium is always included. Toggle Small and Large as needed.</p>
                 <div className="space-y-3">
-                  {SIZES.map(size => (
-                    <div
-                      key={size}
-                      className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
-                        form.sizes[size].enabled
-                          ? 'border-green-500 bg-green-50 dark:border-green-700 dark:bg-green-900/10'
-                          : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/30'
-                      }`}
-                    >
-                      <button
-                        onClick={() => handleSizeToggle(size)}
-                        className={`transition-colors ${
-                          form.sizes[size].enabled ? 'text-green-600' : 'text-gray-400'
-                        }`}
-                      >
-                        {form.sizes[size].enabled ? (
-                          <ToggleRight className="w-8 h-8" />
-                        ) : (
-                          <ToggleLeft className="w-8 h-8" />
-                        )}
-                      </button>
-                      <span className={`text-sm font-semibold w-20 ${
-                        form.sizes[size].enabled
-                          ? 'text-green-600 dark:text-green-400'
-                          : 'text-gray-400'
-                      }`}>
-                        {size}
-                      </span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={form.sizes[size].price}
-                        onChange={e => handleSizePrice(size, e.target.value)}
-                        disabled={!form.sizes[size].enabled}
-                        placeholder="Price (Rs.)"
-                        className="flex-1 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                      />
-                    </div>
-                  ))}
+                  {SIZES.map(size => {
+                    const isMedium  = size === 'Medium';
+                    const isEnabled = form.sizes[size].enabled;
+                    return (
+                      <div key={size}
+                        className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
+                          isEnabled
+                            ? 'border-green-500 bg-green-50 dark:border-green-700 dark:bg-green-900/10'
+                            : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/30'
+                        }`}>
+                        {/* Toggle — Medium is locked on */}
+                        <button onClick={() => handleSizeToggle(size)} disabled={isMedium}
+                          className={`transition-colors ${isEnabled ? 'text-green-600' : 'text-gray-400'} ${isMedium ? 'cursor-default' : ''}`}>
+                          {isEnabled ? <ToggleRight className="w-8 h-8" /> : <ToggleLeft className="w-8 h-8" />}
+                        </button>
+
+                        <div className="flex items-center gap-2 w-28">
+                          <span className={`text-sm font-semibold ${isEnabled ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+                            {size}
+                          </span>
+                          {isMedium && (
+                            <span className="text-[10px] bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-1.5 py-0.5 rounded-full font-medium">
+                              always on
+                            </span>
+                          )}
+                          {size === 'Small' || size === 'Large' ? (
+                            <span className="text-[10px] text-gray-400">(optional)</span>
+                          ) : null}
+                        </div>
+
+                        <div className="flex-1">
+                          <input type="text" inputMode="decimal"
+                            value={form.sizes[size].price}
+                            onChange={e => handleSizePrice(size, e.target.value)}
+                            disabled={!isEnabled}
+                            placeholder={isMedium ? 'Auto-filled from base price' : 'Price (Rs.)'}
+                            className={`w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed ${formErrors[`size_${size}`] ? 'border-red-400' : ''}`} />
+                          {formErrors[`size_${size}`] && (
+                            <p className="text-[11px] text-red-500 mt-1 flex items-center gap-1">
+                              <XCircle className="w-3 h-3" /> {formErrors[`size_${size}`]}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1015,43 +907,24 @@ export default function MealsPage() {
               <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/30">
                 <div>
                   <p className="font-medium text-gray-900 dark:text-white">Availability Status</p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Toggle to mark this meal as available or out of stock
-                  </p>
+                  <p className="text-sm text-gray-500 mt-1">Toggle to mark this meal as available or out of stock</p>
                 </div>
-                <button
-                  onClick={() => setForm(f => ({ ...f, isAvailable: !f.isAvailable }))}
-                  className={`transition-colors ${
-                    form.isAvailable ? 'text-green-600' : 'text-gray-400'
-                  }`}
-                >
-                  {form.isAvailable ? (
-                    <ToggleRight className="w-10 h-10" />
-                  ) : (
-                    <ToggleLeft className="w-10 h-10" />
-                  )}
+                <button onClick={() => setForm(f => ({ ...f, isAvailable: !f.isAvailable }))}
+                  className={`transition-colors ${form.isAvailable ? 'text-green-600' : 'text-gray-400'}`}>
+                  {form.isAvailable ? <ToggleRight className="w-10 h-10" /> : <ToggleLeft className="w-10 h-10" />}
                 </button>
               </div>
             </div>
 
             {/* Modal Footer */}
             <div className="sticky bottom-0 bg-white dark:bg-gray-800 px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-3">
-              <button
-                onClick={closeModal}
-                className="px-4 py-2.5 text-sm font-medium rounded-xl border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
+              <button onClick={closeModal}
+                className="px-4 py-2.5 text-sm font-medium rounded-xl border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                 Cancel
               </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="px-6 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-all flex items-center gap-2"
-              >
-                {saving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
+              <button onClick={handleSave} disabled={saving}
+                className="px-6 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-all flex items-center gap-2">
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {saving ? 'Saving...' : editMeal ? 'Update Meal' : 'Add Meal'}
               </button>
             </div>
@@ -1067,23 +940,17 @@ export default function MealsPage() {
               <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
                 <AlertCircle className="w-8 h-8 text-red-500" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                Delete Meal?
-              </h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Delete Meal?</h3>
               <p className="text-sm text-gray-500 mb-6">
                 This action cannot be undone. The meal will be permanently removed from your menu.
               </p>
               <div className="flex gap-3">
-                <button
-                  onClick={() => setDeleteId(null)}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
+                <button onClick={() => setDeleteId(null)}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                   Cancel
                 </button>
-                <button
-                  onClick={() => handleDelete(deleteId)}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl bg-red-600 hover:bg-red-700 text-white transition-colors"
-                >
+                <button onClick={() => handleDelete(deleteId)}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl bg-red-600 hover:bg-red-700 text-white transition-colors">
                   Delete
                 </button>
               </div>

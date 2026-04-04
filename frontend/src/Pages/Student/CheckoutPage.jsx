@@ -5,31 +5,34 @@ import {
   Check, Loader2, ShoppingBag, ClipboardList, X
 } from "lucide-react";
 import { cartAPI, orderAPI, paymentAPI } from "../../api/studentApi";
-
-const TEMP_STUDENT_ID = "64f1a2b3c4d5e6f7a8b9c0d1";
+import { useAuth } from "../../context/AuthContext";
 
 const PAYMENT_METHODS = [
-  { id: "cash",        label: "Cash on Pickup",  desc: "Pay when you collect your order",  Icon: Banknote },
-  { id: "card",        label: "Online Banking",  desc: "FPX / Internet Banking",           Icon: CreditCard },
-  { id: "ewallet",     label: "E-Wallet",        desc: "Touch n Go / GrabPay / Boost",     Icon: Smartphone },
+  { id: "cash",    label: "Cash on Pickup", desc: "Pay when you collect your order", Icon: Banknote },
+  { id: "card",    label: "Online Banking", desc: "FPX / Internet Banking",          Icon: CreditCard },
+  { id: "ewallet", label: "E-Wallet",       desc: "Touch n Go / GrabPay / Boost",    Icon: Smartphone },
 ];
 
 export default function CheckoutPage() {
-  const [cart, setCart]               = useState(null);
-  const [loading, setLoading]         = useState(true);
+  const { user } = useAuth();
+  const studentId = user?._id || user?.id;
+
+  const [cart, setCart]                   = useState(null);
+  const [loading, setLoading]             = useState(true);
   const [paymentMethod, setPaymentMethod] = useState("cash");
-  const [processing, setProcessing]   = useState(false);
-  const [result, setResult]           = useState(null); // "success" | "failed"
-  const [orderId, setOrderId]         = useState(null);
-  const [error, setError]             = useState("");
+  const [processing, setProcessing]       = useState(false);
+  const [result, setResult]               = useState(null); // "success" | "failed"
+  const [orderId, setOrderId]             = useState(null);
+  const [error, setError]                 = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    cartAPI.getCart(TEMP_STUDENT_ID).then((res) => {
+    if (!studentId) return;
+    cartAPI.getCart(studentId).then((res) => {
       if (res.success) setCart(res.data);
       setLoading(false);
     });
-  }, []);
+  }, [studentId]);
 
   const items    = cart?.items || [];
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
@@ -42,7 +45,7 @@ export default function CheckoutPage() {
     try {
       // Step 1 — Place order
       const orderRes = await orderAPI.placeOrder({
-        studentId:     TEMP_STUDENT_ID,
+        studentId,
         canteenId:     cart.canteen?._id || cart.canteen,
         items:         items.map((i) => ({
           meal:     i.meal?._id || i.meal,
@@ -65,7 +68,7 @@ export default function CheckoutPage() {
 
       // Step 2 — Process payment
       const payRes = await paymentAPI.processPayment({
-        studentId:     TEMP_STUDENT_ID,
+        studentId,
         orderId:       newOrderId,
         amount:        subtotal,
         paymentMethod,
