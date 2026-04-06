@@ -22,6 +22,7 @@ const canteenSchema = new mongoose.Schema({
   location:    { type: String },
   description: { type: String },
   image:       { type: String },
+  registrationDocument: { type: String, default: '' },
 
   // Operating hours
   operatingHours: [operatingHourSchema],

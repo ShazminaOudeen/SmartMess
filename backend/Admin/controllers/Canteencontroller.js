@@ -11,7 +11,7 @@ const getCanteenStats = async (req, res) => {
     const [total, approved, pending] = await Promise.all([
       getCollection('canteens').countDocuments({}),
       getCollection('canteens').countDocuments({ isApproved: true }),
-      User.countDocuments({ role: 'canteen', status: 'pending' }), // ✅ from users
+      User.countDocuments({ role: 'canteen', status: 'pending' }),
     ]);
     res.json({ success: true, data: { total, approved, pending } });
   } catch (err) {
@@ -45,20 +45,20 @@ const getCanteens = async (req, res) => {
         .sort({ createdAt: -1 });
 
       const data = users.map(u => ({
-        _id: u._id,
-        name: u.canteenName,
-        ownerName: u.name,
-        ownerEmail: u.email,
-        phone: u.phone,
-        location: u.location,
-        licenseNumber: u.licenseNumber,
+        _id:                  u._id,
+        name:                 u.canteenName,
+        ownerName:            u.name,
+        ownerEmail:           u.email,
+        phone:                u.phone,
+        location:             u.location,
+        licenseNumber:        u.licenseNumber,
         registrationDocument: u.registrationDocument,
-        status: u.status,
-        rejectionReason: u.rejectionReason,
-        createdAt: u.createdAt,
-        isApproved: false,
-        isRejected: status === 'rejected',
-        documents: u.registrationDocument ? [u.registrationDocument] : [],
+        status:               u.status,
+        rejectionReason:      u.rejectionReason,
+        createdAt:            u.createdAt,
+        isApproved:           false,
+        isRejected:           status === 'rejected',
+        documents:            u.registrationDocument ? [u.registrationDocument] : [],
       }));
 
       return res.json({ success: true, data });
@@ -73,18 +73,31 @@ const getCanteens = async (req, res) => {
       .sort({ createdAt: -1 })
       .toArray();
 
-   const enriched = await Promise.all(canteens.map(async (c) => {
-  const [orderCount, complaintCount] = await Promise.all([
-    getCollection('orders').countDocuments({ canteen: c._id }),
-    getCollection('complaints').countDocuments({ canteen: c._id }).catch(() => 0),
-  ]);
-  return { 
-    ...c, 
-    name: c.canteenName || c.name, // ✅ add this
-    orderCount, 
-    complaintCount 
-  };
-}));
+    const enriched = await Promise.all(canteens.map(async (c) => {
+      const [orderCount, complaintCount, ownerUser] = await Promise.all([
+        getCollection('orders').countDocuments({ canteen: c._id }),
+        getCollection('complaints').countDocuments({ canteen: c._id }).catch(() => 0),
+        // ✅ fetch owner user to get email + registrationDocument
+        User.findById(c.owner).select('email registrationDocument').lean(),
+      ]);
+
+      return {
+        ...c,
+        name:       c.canteenName || c.name,
+        orderCount,
+        complaintCount,
+        // ✅ email from canteen doc or fallback to user record
+        ownerEmail: c.email || ownerUser?.email || '—',
+        // ✅ normalize documents — canteen doc first, then user record fallback
+        documents: c.documents?.length
+          ? c.documents
+          : c.registrationDocument
+            ? [c.registrationDocument]
+            : ownerUser?.registrationDocument
+              ? [ownerUser.registrationDocument]
+              : [],
+      };
+    }));
 
     res.json({ success: true, data: enriched });
   } catch (err) {
@@ -97,15 +110,30 @@ const getApprovedCanteens = async (req, res) => {
   try {
     const canteens = await getCollection('canteens')
       .find({ isApproved: true })
-       .sort({ canteenName: 1 })
+      .sort({ canteenName: 1 })
       .toArray();
 
     const enriched = await Promise.all(canteens.map(async (c) => {
-      const [orderCount, complaintCount] = await Promise.all([
+      const [orderCount, complaintCount, ownerUser] = await Promise.all([
         getCollection('orders').countDocuments({ canteen: c._id }),
         getCollection('complaints').countDocuments({ canteen: c._id }).catch(() => 0),
+        User.findById(c.owner).select('email registrationDocument').lean(),
       ]);
-      return { ...c, orderCount, complaintCount };
+
+      return {
+        ...c,
+        name: c.canteenName || c.name,
+        orderCount,
+        complaintCount,
+        ownerEmail: c.email || ownerUser?.email || '—',
+        documents: c.documents?.length
+          ? c.documents
+          : c.registrationDocument
+            ? [c.registrationDocument]
+            : ownerUser?.registrationDocument
+              ? [ownerUser.registrationDocument]
+              : [],
+      };
     }));
 
     res.json({ success: true, data: enriched });
@@ -126,41 +154,41 @@ const approveCanteen = async (req, res) => {
     );
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    
-
     const existing = await Canteen.findOne({ owner: user._id });
-   
 
     if (!existing) {
-      const newCanteen = await Canteen.create({
-        owner:       user._id,
-        ownerName:   user.name,
-        name:        user.canteenName, // ✅ use 'name' to match existing docs
-    canteenName: user.canteenName, 
-        email:       user.email,
-        phone:       user.phone,
-        location:    user.location,
-        isApproved:  true,
-        isActive:    true,
+      await Canteen.create({
+        owner:                user._id,
+        ownerName:            user.name,
+        name:                 user.canteenName,
+        canteenName:          user.canteenName,
+        email:                user.email,       // ✅ save email
+        phone:                user.phone,
+        location:             user.location,
+        isApproved:           true,
+        isActive:             true,
+        registrationDocument: user.registrationDocument || '', // ✅ save document
       });
-      
     } else {
       await Canteen.findOneAndUpdate(
         { owner: user._id },
-        { isApproved: true, isActive: true }
+        {
+          isApproved:           true,
+          isActive:             true,
+          email:                existing.email  || user.email,
+          registrationDocument: existing.registrationDocument || user.registrationDocument || '',
+        }
       );
-      
     }
 
     await logActivity({
-      type: 'CANTEEN_APPROVED',
+      type:        'CANTEEN_APPROVED',
       description: `Canteen approved: ${user.canteenName}`,
       performedBy: { userId: req.user?._id, name: req.user?.name || 'Admin', role: 'Admin' },
     });
 
     res.json({ success: true, message: 'Canteen approved successfully' });
   } catch (err) {
-    
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -179,7 +207,7 @@ const rejectCanteen = async (req, res) => {
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     await logActivity({
-      type: 'CANTEEN_REJECTED',
+      type:        'CANTEEN_REJECTED',
       description: `Canteen rejected: ${user.canteenName}${reason ? ` — ${reason}` : ''}`,
       performedBy: { userId: req.user?._id, name: req.user?.name || 'Admin', role: 'Admin' },
     });
