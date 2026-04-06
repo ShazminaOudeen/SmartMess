@@ -131,9 +131,16 @@ const StatusBadge = ({ status }) => {
   return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${map[status] || map.pending}`}>{status}</span>;
 };
 
+// ✅ FIXED: Replaced Google Docs viewer with native browser <object> tag
 const DocModal = ({ doc, onClose }) => {
   if (!doc) return null;
-  const isPdf = doc.url?.toLowerCase().endsWith('.pdf') || doc.type === 'application/pdf';
+
+  const fullUrl = doc.url?.startsWith('http')
+    ? doc.url
+    : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${doc.url}`;
+
+  const isPdf = fullUrl?.toLowerCase().includes('.pdf') || doc.type === 'application/pdf';
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
@@ -144,7 +151,13 @@ const DocModal = ({ doc, onClose }) => {
             <span className="text-sm font-bold text-gray-800 dark:text-white">{doc.name || 'Document'}</span>
           </div>
           <div className="flex items-center gap-2">
-            <a href={doc.url} download target="_blank" rel="noreferrer"
+            {isPdf && (
+              <a href={fullUrl} target="_blank" rel="noreferrer"
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors">
+                <Eye className="w-3.5 h-3.5" /> Open in Tab
+              </a>
+            )}
+            <a href={fullUrl} download target="_blank" rel="noreferrer"
               className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 hover:bg-primary-100 transition-colors">
               <Download className="w-3.5 h-3.5" /> Download
             </a>
@@ -154,8 +167,44 @@ const DocModal = ({ doc, onClose }) => {
           </div>
         </div>
         <div className="flex-1 overflow-auto" style={{ scrollbarWidth: 'none' }}>
-          {isPdf ? <iframe src={doc.url} className="w-full h-full min-h-[60vh]" title="PDF Viewer" />
-                 : <img src={doc.url} alt={doc.name} className="w-full h-auto object-contain p-4" />}
+          {isPdf ? (
+            // ✅ Uses browser's built-in PDF renderer — works with localhost URLs
+            <object
+              data={fullUrl}
+              type="application/pdf"
+              className="w-full"
+              style={{ height: '70vh' }}
+            >
+              {/* Fallback UI if browser can't render the PDF inline */}
+              <div className="flex flex-col items-center justify-center gap-4 text-gray-400 dark:text-gray-500 p-10" style={{ height: '70vh' }}>
+                <FileText className="w-12 h-12" />
+                <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">
+                  Unable to preview this PDF in your browser.
+                </p>
+                <div className="flex gap-3">
+                  <a
+                    href={fullUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white transition-colors"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> Open in New Tab
+                  </a>
+                  <a
+                    href={fullUrl}
+                    download
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Download
+                  </a>
+                </div>
+              </div>
+            </object>
+          ) : (
+            <img src={fullUrl} alt={doc.name} className="w-full h-auto object-contain p-4" />
+          )}
         </div>
       </div>
     </div>
@@ -239,7 +288,7 @@ const DetailModal = ({ canteen, onClose, onApprove, onReject, actionLoading }) =
 const CanteenApprovals = () => {
   const [canteens, setCanteens]           = useState([]);
   const [allCanteens, setAllCanteens]     = useState([]);
-  const [stats, setStats]                 = useState({ total: 0, approved: 0, pending: 0 });
+  const [stats, setStats]                 = useState({ approved: 0, pending: 0, rejected: 0 });
   const [loading, setLoading]             = useState(true);
   const [statsLoading, setStatsLoading]   = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -256,7 +305,6 @@ const CanteenApprovals = () => {
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      // ✅ authFetch
       const r = await authFetch('/api/admin/canteens/stats');
       const j = await r.json();
       if (j.success) setStats(j.data);
@@ -267,7 +315,6 @@ const CanteenApprovals = () => {
   const fetchCanteens = useCallback(async (status = 'pending') => {
     setLoading(true);
     try {
-      // ✅ authFetch
       const r = await authFetch(`/api/admin/canteens?status=${status}`);
       const j = await r.json();
       if (j.success) { setAllCanteens(j.data); setCanteens(j.data); }
@@ -291,7 +338,6 @@ const CanteenApprovals = () => {
   const handleApprove = async (id) => {
     setActionLoading(true);
     try {
-      // ✅ authFetch
       const r = await authFetch(`/api/admin/canteens/${id}/approve`, { method: 'PUT' });
       const j = await r.json();
       if (!r.ok) throw new Error(j.message);
@@ -304,7 +350,6 @@ const CanteenApprovals = () => {
     if (!rejectReason.trim()) return;
     setActionLoading(true);
     try {
-      // ✅ authFetch
       const r = await authFetch(`/api/admin/canteens/${rejectModal}/reject`, {
         method: 'PUT',
         body: JSON.stringify({ reason: rejectReason }),
@@ -343,9 +388,9 @@ const CanteenApprovals = () => {
         <style>{`*::-webkit-scrollbar{display:none}`}</style>
 
         <div className="grid grid-cols-3 gap-4">
-          <StatCard icon={Store}       label="Total Canteens"   value={stats.total}    color="bg-indigo-500"  loading={statsLoading} />
-          <StatCard icon={CheckCircle} label="Approved"         value={stats.approved} color="bg-primary-500" loading={statsLoading} />
-          <StatCard icon={Clock}       label="Pending Approval" value={stats.pending}  color="bg-amber-500"   loading={statsLoading} />
+          <StatCard icon={CheckCircle} label="Approved Canteens" value={stats.approved} color="bg-primary-500" loading={statsLoading} />
+          <StatCard icon={Clock}       label="Pending Approval"  value={stats.pending}  color="bg-amber-500"   loading={statsLoading} />
+          <StatCard icon={XCircle}     label="Rejected"          value={stats.rejected} color="bg-red-500"     loading={statsLoading} />
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">

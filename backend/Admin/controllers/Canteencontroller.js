@@ -8,12 +8,12 @@ const getCollection = (name) => mongoose.connection.db.collection(name);
 // ── GET /api/admin/canteens/stats ─────────────────────────────────────────────
 const getCanteenStats = async (req, res) => {
   try {
-    const [total, approved, pending] = await Promise.all([
-      getCollection('canteens').countDocuments({}),
+    const [approved, pending, rejected] = await Promise.all([
       getCollection('canteens').countDocuments({ isApproved: true }),
       User.countDocuments({ role: 'canteen', status: 'pending' }),
+      User.countDocuments({ role: 'canteen', status: 'rejected' }),
     ]);
-    res.json({ success: true, data: { total, approved, pending } });
+    res.json({ success: true, data: { approved, pending, rejected } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
