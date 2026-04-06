@@ -6,7 +6,7 @@ import AdminHeader from './components/AdminHeader';
 import {
   Users, UserCheck, UserX, Search, Filter,
   FileDown, RefreshCw, CheckCircle, XCircle,
-  Shield, ShieldOff, Mail, Phone, Calendar, Eye
+  Shield, ShieldOff, Mail, Phone, Calendar, Eye, BookOpen
 } from 'lucide-react';
 
 const fmt = (n) => (n ?? 0).toLocaleString();
@@ -147,7 +147,8 @@ const UserModal = ({ user, onClose, onBlock, onUnblock, actionLoading }) => {
             { icon: Mail,     label: 'Email',      value: user.email || '—' },
             { icon: Phone,    label: 'Phone',      value: user.phone || '—' },
             { icon: Calendar, label: 'Registered', value: fmtDate(user.createdAt) },
-            { icon: Shield,   label: 'NIC',        value: user.nic || '—' },
+            { icon: Shield,      label: 'Student ID',  value: user.studentId || '—' },
+            { icon: BookOpen,    label: 'University',  value: user.university || '—' },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
               <div className="flex items-center gap-2 mb-1">
