@@ -7,9 +7,9 @@ const getCollection = (name) => mongoose.connection.db.collection(name);
 const getDashboardStats = async (req, res) => {
   try {
     const [totalUsers, totalOrders, totalApprovedCanteens] = await Promise.all([
-      getCollection('users').countDocuments({}),
-      getCollection('orders').countDocuments({}),
-      getCollection('canteens').countDocuments({ isApproved: true }),
+      getCollection('users').countDocuments({ role: 'student' }),
+        getCollection('orders').countDocuments({}),
+       getCollection('canteens').countDocuments({ isApproved: true }),
     ]);
 
     res.json({
@@ -50,7 +50,7 @@ const getOrdersByCanteen = async (req, res) => {
 
     const canteens = await getCollection('canteens')
       .find({ _id: { $in: canteenIds } })
-      .project({ name: 1 })
+      .project({ canteenName: 1 }) 
       .toArray();
 
     // Step 3: Build a lookup map id→name
