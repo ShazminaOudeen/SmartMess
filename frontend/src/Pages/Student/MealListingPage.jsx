@@ -184,7 +184,11 @@ export default function MealListingPage() {
       formData.append("submittedByEmail", studentEmail);
       formData.append("submitterId",      studentId);
       formData.append("category",         reportCategory);
-      formData.append("description", `[Priority: ${reportPriority}] [Date: ${reportDate}] [Contact: ${reportContact}${reportContact === "Phone" ? " - " + reportPhone : ""}]\n\n${reportDesc}`);
+      formData.append("description",       reportDesc);
+      formData.append("priority",          reportPriority);
+      formData.append("incidentDate",      reportDate);
+      formData.append("contactPreference", reportContact);
+      if (reportContact === "Phone") formData.append("contactPhone", reportPhone);
       if (reportPhoto) formData.append("attachment", reportPhoto);
 
       const res  = await fetch("/api/student/complaints", { method: "POST", body: formData });

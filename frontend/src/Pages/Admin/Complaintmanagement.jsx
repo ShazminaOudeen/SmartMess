@@ -11,7 +11,9 @@ import {
 const fmtDate  = (d) => d ? new Date(d).toLocaleDateString('en-US', { day:'numeric', month:'short', year:'numeric' }) : '—';
 const fmtTime  = (d) => d ? new Date(d).toLocaleString('en-US', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '—';
 const getId    = (id) => id ? String(id).slice(-6).toUpperCase() : '??????';
-const imgUrl   = (path) => path ? `http://localhost:5000${path}` : null;
+
+// ✅ Use env variable so it works on all machines, not just localhost
+const imgUrl = (path) => path ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${path}` : null;
 
 const STATUS = {
   pending:   { label: 'Pending',   color: 'bg-yellow-50 text-yellow-600 ring-1 ring-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:ring-yellow-800',   dot: 'bg-yellow-500'  },
@@ -108,6 +110,7 @@ const EmailModal = ({ complaint, onClose, onSend, sending }) => {
   );
 };
 
+// ✅ DetailModal — shows only description + attachment + status actions
 const DetailModal = ({ complaint, onClose, onStatusChange, onEmail, statusLoading }) => {
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   if (!complaint) return null;
@@ -122,7 +125,9 @@ const DetailModal = ({ complaint, onClose, onStatusChange, onEmail, statusLoadin
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl border border-gray-200 dark:border-gray-700 overflow-hidden max-h-[90vh] flex flex-col">
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg border border-gray-200 dark:border-gray-700 overflow-hidden max-h-[90vh] flex flex-col">
+
+        {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-start justify-between flex-shrink-0">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -137,54 +142,43 @@ const DetailModal = ({ complaint, onClose, onStatusChange, onEmail, statusLoadin
           </button>
         </div>
 
+        {/* ✅ Body — description only */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
-              <div className="flex items-center gap-1.5 mb-1">
-                {complaint.submitterType === 'canteen' ? <Store className="w-3.5 h-3.5 text-gray-400" /> : <User className="w-3.5 h-3.5 text-gray-400" />}
-                <span className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Submitted By</span>
-              </div>
-              <p className="text-sm font-bold text-gray-800 dark:text-white">{complaint.submittedByName || '—'}</p>
-              <p className="text-[11px] text-gray-400 truncate">{complaint.submittedByEmail || '—'}</p>
-            </div>
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Tag className="w-3.5 h-3.5 text-gray-400" />
-                <span className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Category</span>
-              </div>
-              <p className="text-sm font-bold text-gray-800 dark:text-white">{complaint.category || '—'}</p>
-              <p className="text-[11px] text-gray-400 capitalize">{complaint.submitterType || 'user'} complaint</p>
-            </div>
-          </div>
 
+          {/* Description */}
           <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
             <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-2">Description</p>
-            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{complaint.description || 'No description provided.'}</p>
+            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+              {complaint.description || 'No description provided.'}
+            </p>
           </div>
 
+          {/* Attachment — only if present */}
           {complaint.attachment && (
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-2">Attachment</p>
               <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-600">
-                <img src={imgUrl(complaint.attachment)} alt="Complaint attachment"
+                {/* ✅ Fixed image URL using env variable */}
+                <img
+                  src={imgUrl(complaint.attachment)}
+                  alt="Complaint attachment"
                   className="w-full max-h-64 object-contain bg-gray-50 dark:bg-gray-700"
-                  onError={(e) => { e.target.style.display = 'none'; }} />
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
               </div>
-              <a href={imgUrl(complaint.attachment)} target="_blank" rel="noreferrer"
-                className="inline-flex items-center gap-1.5 mt-2 text-xs text-blue-500 hover:text-blue-600 font-semibold">
+              <a
+                href={imgUrl(complaint.attachment)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 mt-2 text-xs text-blue-500 hover:text-blue-600 font-semibold"
+              >
                 <Paperclip className="w-3.5 h-3.5" /> View full image
               </a>
             </div>
           )}
-
-          {complaint.adminNote && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 border border-blue-100 dark:border-blue-800">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-blue-500 mb-1">Admin Note</p>
-              <p className="text-xs text-blue-700 dark:text-blue-300">{complaint.adminNote}</p>
-            </div>
-          )}
         </div>
 
+        {/* Footer actions */}
         <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex items-center gap-3 flex-shrink-0">
           <button onClick={() => onEmail(complaint)}
             className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-xl bg-blue-500 hover:bg-blue-600 text-white transition-colors">
@@ -247,7 +241,6 @@ const ComplaintManagement = () => {
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      // ✅ authFetch
       const r = await authFetch('/api/admin/complaints/stats');
       const j = await r.json();
       if (j.success) setStats(j.data);
@@ -257,7 +250,6 @@ const ComplaintManagement = () => {
   const fetchComplaints = useCallback(async () => {
     setLoading(true);
     try {
-      // ✅ authFetch
       const r = await authFetch('/api/admin/complaints');
       const j = await r.json();
       if (j.success) { setAllComplaints(j.data); setComplaints(j.data); }
@@ -286,7 +278,6 @@ const ComplaintManagement = () => {
   const handleStatusChange = async (id, newStatus) => {
     setStatusLoading(true);
     try {
-      // ✅ authFetch
       const r = await authFetch(`/api/admin/complaints/${id}/status`, {
         method: 'PUT',
         body: JSON.stringify({ status: newStatus }),
@@ -304,7 +295,6 @@ const ComplaintManagement = () => {
   const handleSendEmail = async ({ complaintId, to, subject, body }) => {
     setEmailSending(true);
     try {
-      // ✅ authFetch
       const r = await authFetch('/api/admin/complaints/send-email', {
         method: 'POST',
         body: JSON.stringify({ complaintId, to, subject, body }),

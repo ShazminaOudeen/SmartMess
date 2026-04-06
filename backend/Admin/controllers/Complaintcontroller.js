@@ -4,15 +4,15 @@ const { logActivity } = require('./dashboardController');
 const getCollection = (name) => mongoose.connection.db.collection(name);
 
 // ── Nodemailer transporter ────────────────────────────────────────────────────
-// Set these in your .env file:
-//   EMAIL_USER=your_gmail@gmail.com
-//   EMAIL_PASS=your_app_password   (Gmail App Password, not your login password)
-//   EMAIL_FROM=SmartMess Admin <your_gmail@gmail.com>
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
+  },
+  // ✅ Fixes "self-signed certificate" error on other machines
+  tls: {
+    rejectUnauthorized: false,
   },
 });
 
@@ -128,14 +128,12 @@ const updateComplaintStatus = async (req, res) => {
     );
     if (!result) return res.status(404).json({ success: false, message: 'Complaint not found' });
 
-    // Log activity
     await logActivity({
       type: 'COMPLAINT_RESOLVED',
       description: `Complaint #${String(id).slice(-6).toUpperCase()} marked as ${status}`,
       performedBy: { userId: req.user?._id, name: req.user?.name || 'Admin', role: 'Admin' },
     }).catch(() => {});
 
-    // Auto email for inreview / resolved / closed
     const email    = result.submittedByEmail;
     const name     = result.submittedByName || 'User';
     const shortId  = String(id).slice(-6).toUpperCase();
@@ -183,7 +181,6 @@ const sendComplaintEmail = async (req, res) => {
       html,
     });
 
-    // Log this communication
     if (complaintId) {
       await getCollection('complaints').updateOne(
         { _id: new mongoose.Types.ObjectId(complaintId) },
