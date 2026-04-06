@@ -79,8 +79,9 @@ const changePassword = async (req, res) => {
     if (!isMatch)
       return res.status(400).json({ success: false, message: 'Current password is incorrect' });
 
-    const hashed = await bcrypt.hash(newPassword, 12);
-    await UserModel().findByIdAndUpdate(adminId, { password: hashed });
+    // ✅ Assign plain text and use save() so the pre('save') hook hashes it once
+    admin.password = newPassword;
+    await admin.save();
 
     res.json({ success: true, message: 'Password changed successfully' });
   } catch (err) {
@@ -101,11 +102,11 @@ const createAdmin = async (req, res) => {
     if (existing)
       return res.status(400).json({ success: false, message: 'An account with this email already exists' });
 
-    const hashed = await bcrypt.hash(password, 12);
+    // ✅ Pass plain text password — the pre('save') hook in User model hashes it once
     const newAdmin = await UserModel().create({
       name: name.trim(),
       email: email.toLowerCase().trim(),
-      password: hashed,
+      password,
       nic: nic.trim(),
       phone: phone.trim(),
       role: 'admin',

@@ -48,16 +48,20 @@ const register = async (req, res) => {
             });
         }
 
+        // Normalize
+        const normalizedEmail = email.toLowerCase().trim();
+        const normalizedRole  = role.toLowerCase().trim();
+
         // Check valid role
-        if (!['student', 'canteen', 'admin'].includes(role)) {
+        if (!['student', 'canteen', 'admin'].includes(normalizedRole)) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid role. Must be student, canteen, or admin',
             });
         }
 
-        // Check if user already exists
-        const existingUser = await User.findOne({ email });
+        // ✅ Check if user already exists — normalized email
+        const existingUser = await User.findOne({ email: normalizedEmail });
         if (existingUser) {
             return res.status(400).json({
                 success: false,
@@ -66,7 +70,7 @@ const register = async (req, res) => {
         }
 
         // Canteen must upload a registration document
-        if (role === 'canteen' && !req.file) {
+        if (normalizedRole === 'canteen' && !req.file) {
             return res.status(400).json({
                 success: false,
                 message: 'Registration document is required for canteen registration',
@@ -74,13 +78,13 @@ const register = async (req, res) => {
         }
 
         // Create user object
-        const userData = { name, email, password, role, phone };
+        const userData = { name, email: normalizedEmail, password, role: normalizedRole, phone };
 
         // Add role-specific fields
-        if (role === 'student') {
+        if (normalizedRole === 'student') {
             userData.university = university || '';
             userData.studentId = studentId || '';
-        } else if (role === 'canteen') {
+        } else if (normalizedRole === 'canteen') {
             if (!canteenName) {
                 return res.status(400).json({
                     success: false,
@@ -91,13 +95,12 @@ const register = async (req, res) => {
             userData.location = location || '';
             userData.licenseNumber = licenseNumber || '';
             userData.registrationDocument = '/' + req.file.path.replace(/\\/g, '/');
-            
         }
 
         const user = await User.create(userData);
 
         // Don't return token for canteen — they must wait for approval
-        if (role === 'canteen') {
+        if (normalizedRole === 'canteen') {
             return res.status(201).json({
                 success: true,
                 message: 'Registration submitted! Awaiting admin approval.',
@@ -149,8 +152,12 @@ const login = async (req, res) => {
             });
         }
 
-        // Find user by email AND role
-        const user = await User.findOne({ email, role });
+        // ✅ Normalize email and role — fixes case-mismatch login failures
+        const normalizedEmail = email.toLowerCase().trim();
+        const normalizedRole  = role.toLowerCase().trim();
+
+        // Find user by normalized email AND role
+        const user = await User.findOne({ email: normalizedEmail, role: normalizedRole });
         if (!user) {
             return res.status(401).json({
                 success: false,
