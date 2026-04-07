@@ -3,7 +3,7 @@ import AdminSidebar from "./components/AdminSidebar";
 import AdminDashboard from "./AdminDashboard";
 import AdminProfile from "./AdminProfile";
 import AdminHeader from "./components/AdminHeader";
-import CanteenApprovals from './CanteenApprovals';
+import CanteenApprovals from './Canteenapprovals';
 import CanteenVisibility from './Canteenvisibility';
 import UserManagement from './Usermanagement';
 import Analytics from './Analytics';

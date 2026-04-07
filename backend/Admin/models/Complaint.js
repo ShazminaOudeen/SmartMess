@@ -6,6 +6,7 @@ const complaintSchema = new mongoose.Schema(
     submittedByEmail: { type: String, default: '' },
     submitterId:      { type: mongoose.Schema.Types.ObjectId },
     submitterType:    { type: String, enum: ['user', 'canteen'], default: 'user' },
+    canteenId: { type: mongoose.Schema.Types.ObjectId, default: null },
     category: {
     type: String,
       enum: ['Bug Issue', 'Performance', 'Feature Idea', 'App Bug', 'Other',

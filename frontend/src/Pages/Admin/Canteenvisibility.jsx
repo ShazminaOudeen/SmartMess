@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 
 const fmt  = (n) => (n ?? 0).toLocaleString();
+
 const getLogoBase64 = () => new Promise((resolve) => {
   const img = new Image();
   img.onload = () => {
@@ -41,7 +42,10 @@ const generatePDF = async (canteens, filterVis) => {
   const operating = canteens.length;
   const visible   = canteens.filter(c => c.isActive).length;
   const hidden    = canteens.filter(c => !c.isActive).length;
-  const avgRating = canteens.length ? (canteens.reduce((s, c) => s + (c.rating || c.averageRating || 0), 0) / canteens.length).toFixed(1) : '0.0';
+  // ✅ Fixed: use averageRating (not c.rating)
+  const avgRating = canteens.length
+    ? (canteens.reduce((s, c) => s + (c.averageRating || 0), 0) / canteens.length).toFixed(1)
+    : '0.0';
 
   const boxes = [
     { label: 'Operating',  value: operating, color: [99, 102, 241]  },
@@ -65,9 +69,9 @@ const generatePDF = async (canteens, filterVis) => {
     { header: '#',            width: 10 },
     { header: 'Canteen Name', width: 55 },
     { header: 'Owner',        width: 45 },
-    { header: 'Status',       width: 22 },
     { header: 'Visibility',   width: 22 },
     { header: 'Rating',       width: 20 },
+    { header: 'Reviews',      width: 20 },
     { header: 'Orders',       width: 22 },
     { header: 'Complaints',   width: 22 },
   ];
@@ -88,17 +92,19 @@ const generatePDF = async (canteens, filterVis) => {
     const compColor = (c.complaintCount || 0) > 0 ? [245, 158, 11] : [107, 114, 128];
     const row = [
       String(i + 1),
-      c.name || '—',
-      c.ownerName || c.owner?.name || '—',
-      'Approved',
+      c.canteenName || c.name || '—',
+      c.ownerName || '—',
       c.isActive ? 'Visible' : 'Hidden',
-      (c.rating || c.averageRating || 0).toFixed(1),
-      fmt(c.orderCount || c.totalOrders || 0),
+      // ✅ Fixed: use averageRating
+      (c.averageRating || 0).toFixed(1),
+      fmt(c.totalRatings || 0),
+      // ✅ Fixed: use totalOrders
+      fmt(c.totalOrders || 0),
       String(c.complaintCount || 0),
     ];
     x = 14;
     cols.forEach((col, ci) => {
-      if (ci === 4) { doc.setTextColor(...visColor); doc.setFont('helvetica', 'bold'); }
+      if (ci === 3) { doc.setTextColor(...visColor); doc.setFont('helvetica', 'bold'); }
       else if (ci === 7) { doc.setTextColor(...compColor); doc.setFont('helvetica', 'bold'); }
       else { doc.setTextColor(31, 41, 55); doc.setFont('helvetica', 'normal'); }
       doc.setFontSize(7.5);
@@ -124,19 +130,28 @@ const StatCard = ({ icon: Icon, label, value, color, loading }) => (
     </div>
     <div>
       <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-0.5">{label}</p>
-      {loading ? <div className="h-7 w-16 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse mt-1" />
-               : <p className="text-2xl font-black text-gray-800 dark:text-white tabular-nums">{fmt(value)}</p>}
+      {loading
+        ? <div className="h-7 w-16 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse mt-1" />
+        : <p className="text-2xl font-black text-gray-800 dark:text-white tabular-nums">{fmt(value)}</p>}
     </div>
     <div className={`absolute -right-3 -top-3 w-20 h-20 rounded-full opacity-[0.07] ${color}`} />
   </div>
 );
 
-const StarRating = ({ rating = 0 }) => (
+const StarRating = ({ rating = 0, totalRatings = 0 }) => (
   <div className="flex items-center gap-0.5">
-    {[1,2,3,4,5].map(s => (
-      <Star key={s} className={`w-3 h-3 ${s <= Math.round(rating) ? 'text-amber-400 fill-amber-400' : 'text-gray-300 dark:text-gray-600'}`} />
+    {[1, 2, 3, 4, 5].map(s => (
+      <Star
+        key={s}
+        className={`w-3 h-3 ${s <= Math.round(rating) ? 'text-amber-400 fill-amber-400' : 'text-gray-300 dark:text-gray-600'}`}
+      />
     ))}
-    <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">{rating ? rating.toFixed(1) : '—'}</span>
+    <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+      {rating ? rating.toFixed(1) : '—'}
+    </span>
+    {totalRatings > 0 && (
+      <span className="text-[10px] text-gray-400 ml-0.5">({totalRatings})</span>
+    )}
   </div>
 );
 
@@ -152,12 +167,14 @@ const CanteenVisibility = () => {
   const [toast, setToast]               = useState(null);
   const [pdfLoading, setPdfLoading]     = useState(false);
 
-  const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      // ✅ authFetch
       const r = await authFetch('/api/admin/canteens/visibility-stats');
       const j = await r.json();
       if (j.success) setStats(j.data);
@@ -168,16 +185,20 @@ const CanteenVisibility = () => {
   const fetchCanteens = useCallback(async () => {
     setLoading(true);
     try {
-      // ✅ authFetch
+      // ✅ This endpoint now returns totalOrders, averageRating, totalRatings, complaintCount
       const r = await authFetch('/api/admin/canteens/approved-list');
       const j = await r.json();
-      if (j.success) { setAllCanteens(j.data); setCanteens(j.data); }
+      if (j.success) {
+        setAllCanteens(j.data);
+        setCanteens(j.data);
+      }
     } catch {}
     finally { setLoading(false); }
   }, []);
 
   useEffect(() => { fetchStats(); fetchCanteens(); }, []);
 
+  // Filter + search
   useEffect(() => {
     let result = allCanteens;
     if (filterVis === 'visible') result = result.filter(c => c.isActive);
@@ -185,8 +206,8 @@ const CanteenVisibility = () => {
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(c =>
-        c.name?.toLowerCase().includes(q) ||
-        (c.ownerName || c.owner?.name || '').toLowerCase().includes(q)
+        (c.canteenName || c.name || '').toLowerCase().includes(q) ||
+        (c.ownerName || '').toLowerCase().includes(q)
       );
     }
     setCanteens(result);
@@ -196,41 +217,47 @@ const CanteenVisibility = () => {
     setToggling(id);
     try {
       const canteen = allCanteens.find(c => c._id?.toString() === id.toString());
-      console.log('🔍 Toggling:', id, 'Found canteen:', canteen?.name);
 
-      // ✅ authFetch
       const r = await authFetch(`/api/admin/canteens/${id}/visibility`, {
         method: 'PUT',
         body: JSON.stringify({ isActive: !current }),
       });
       const j = await r.json();
-      console.log('📡 API response:', j);
       if (!r.ok) throw new Error(j.message);
 
-      setAllCanteens(prev => prev.map(c =>
-        c._id?.toString() === id.toString() ? { ...c, isActive: !current } : c
-      ));
+      // Optimistic update
+      setAllCanteens(prev =>
+        prev.map(c => c._id?.toString() === id.toString() ? { ...c, isActive: !current } : c)
+      );
 
-      // ✅ authFetch for activity log
+      // Log activity
       await authFetch('/api/admin/dashboard/activity', {
         method: 'POST',
         body: JSON.stringify({
           type: !current ? 'CANTEEN_VISIBLE' : 'CANTEEN_HIDDEN',
-          description: `Canteen "${canteen?.name || id}" has been ${!current ? 'made visible to students' : 'hidden from students'}`,
+          description: `Canteen "${canteen?.canteenName || canteen?.name || id}" has been ${!current ? 'made visible to students' : 'hidden from students'}`,
         }),
       }).catch(() => {});
 
       fetchStats();
       showToast(`Canteen ${!current ? 'is now visible to students' : 'has been hidden'}`);
-    } catch (err) { showToast(err.message, 'error'); }
-    finally { setToggling(null); }
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setToggling(null);
+    }
   };
 
   const handleExportPDF = async () => {
     setPdfLoading(true);
-    try { await generatePDF(canteens, filterVis); showToast('PDF exported successfully!'); }
-    catch (err) { showToast('PDF export failed: ' + err.message, 'error'); console.error(err); }
-    finally { setPdfLoading(false); }
+    try {
+      await generatePDF(canteens, filterVis);
+      showToast('PDF exported successfully!');
+    } catch (err) {
+      showToast('PDF export failed: ' + err.message, 'error');
+    } finally {
+      setPdfLoading(false);
+    }
   };
 
   const VIS_FILTERS = [
@@ -245,38 +272,51 @@ const CanteenVisibility = () => {
 
       {toast && (
         <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold flex items-center gap-2 ${toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'} text-white`}>
-          {toast.type === 'error' ? <XCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />} {toast.msg}
+          {toast.type === 'error' ? <XCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+          {toast.msg}
         </div>
       )}
 
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4" style={{ scrollbarWidth: 'none' }}>
         <style>{`*::-webkit-scrollbar{display:none}`}</style>
 
+        {/* Stat Cards */}
         <div className="grid grid-cols-3 gap-4">
           <StatCard icon={Store}  label="Operating Canteens" value={stats.operating} color="bg-indigo-500"  loading={statsLoading} />
-          <StatCard icon={Eye}    label="Visible Canteens"   value={stats.visible}   color="bg-primary-500" loading={statsLoading} />
+          <StatCard icon={Eye}    label="Visible Canteens"   value={stats.visible}   color="bg-green-500"   loading={statsLoading} />
           <StatCard icon={EyeOff} label="Hidden Canteens"    value={stats.hidden}    color="bg-gray-500"    loading={statsLoading} />
         </div>
 
+        {/* Search + Filter bar */}
         <div className="flex items-center gap-3 flex-wrap">
           <div className="relative flex-1 min-w-48">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
               placeholder="Search by canteen or owner name..."
-              className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-all" />
+              className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-all"
+            />
           </div>
           <div className="flex items-center gap-2">
             <Filter className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
             {VIS_FILTERS.map(f => (
-              <button key={f.key} onClick={() => setFilterVis(f.key)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${filterVis === f.key ? f.cls : 'text-gray-400 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}>
+              <button
+                key={f.key}
+                onClick={() => setFilterVis(f.key)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${filterVis === f.key ? f.cls : 'text-gray-400 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
+              >
                 {f.label}
               </button>
             ))}
           </div>
-          <button onClick={handleExportPDF} disabled={pdfLoading || canteens.length === 0}
-            className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white disabled:opacity-50 transition-colors shadow-sm">
-            {pdfLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />} Export PDF
+          <button
+            onClick={handleExportPDF}
+            disabled={pdfLoading || canteens.length === 0}
+            className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white disabled:opacity-50 transition-colors shadow-sm"
+          >
+            {pdfLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
+            Export PDF
           </button>
         </div>
 
@@ -288,22 +328,33 @@ const CanteenVisibility = () => {
           </p>
         )}
 
+        {/* Table */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
+
+          {/* Table Header */}
           <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-gray-100 dark:border-gray-700/60 bg-gray-50 dark:bg-gray-700/30">
-            {[['Canteen', 3], ['Status', 2], ['Rating', 2], ['Orders', 2], ['Complaints', 2], ['Visibility', 1]].map(([h, span]) => (
-              <div key={h} className={`col-span-${span} text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 ${h === 'Visibility' ? 'text-right' : ''}`}>{h}</div>
-            ))}
+            <div className="col-span-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Canteen</div>
+            <div className="col-span-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Status</div>
+            <div className="col-span-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Rating</div>
+            <div className="col-span-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Orders</div>
+            <div className="col-span-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Complaints</div>
+            <div className="col-span-1 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 text-right">Toggle</div>
           </div>
 
           {loading ? (
             <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
-              {[1,2,3,4,5].map(i => (
+              {[1, 2, 3, 4, 5].map(i => (
                 <div key={i} className="grid grid-cols-12 gap-4 px-5 py-4 animate-pulse">
                   <div className="col-span-3 flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
-                    <div className="space-y-1.5 flex-1"><div className="h-3 w-24 bg-gray-200 dark:bg-gray-700 rounded" /><div className="h-2.5 w-16 bg-gray-100 dark:bg-gray-700 rounded" /></div>
+                    <div className="space-y-1.5 flex-1">
+                      <div className="h-3 w-24 bg-gray-200 dark:bg-gray-700 rounded" />
+                      <div className="h-2.5 w-16 bg-gray-100 dark:bg-gray-700 rounded" />
+                    </div>
                   </div>
-                  {[1,2,3,4].map(j => <div key={j} className="col-span-2 h-4 bg-gray-100 dark:bg-gray-700 rounded my-auto" />)}
+                  {[1, 2, 3, 4].map(j => (
+                    <div key={j} className="col-span-2 h-4 bg-gray-100 dark:bg-gray-700 rounded my-auto" />
+                  ))}
                   <div className="col-span-1 h-7 bg-gray-100 dark:bg-gray-700 rounded-xl my-auto" />
                 </div>
               ))}
@@ -311,45 +362,88 @@ const CanteenVisibility = () => {
           ) : canteens.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-gray-300 dark:text-gray-600">
               <Store className="w-10 h-10 mb-2" />
-              <p className="text-sm font-medium text-gray-400">{search ? `No results for "${search}"` : 'No canteens found'}</p>
+              <p className="text-sm font-medium text-gray-400">
+                {search ? `No results for "${search}"` : 'No canteens found'}
+              </p>
             </div>
           ) : (
             <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
               {canteens.map(c => (
-                <div key={c._id} className="grid grid-cols-12 gap-4 px-5 py-3.5 items-center hover:bg-gray-50 dark:hover:bg-gray-700/20 transition-colors">
+                <div
+                  key={c._id}
+                  className="grid grid-cols-12 gap-4 px-5 py-3.5 items-center hover:bg-gray-50 dark:hover:bg-gray-700/20 transition-colors"
+                >
+                  {/* Canteen name + owner */}
                   <div className="col-span-3 flex items-center gap-3 min-w-0">
-                    {c.images?.[0]
-                      ? <img src={c.images[0]} alt={c.name} className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
-                      : <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center flex-shrink-0"><Store className="w-4 h-4 text-white" /></div>}
+                    {c.image
+                      ? <img src={`http://localhost:5000${c.image}`} alt={c.canteenName || c.name} className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+                      : <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center flex-shrink-0">
+                          <Store className="w-4 h-4 text-white" />
+                        </div>
+                    }
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-gray-800 dark:text-white truncate">{c.name}</p>
-                      <p className="text-[10px] text-gray-400 truncate">{c.ownerName || c.owner?.name || '—'}</p>
+                      {/* ✅ Fixed: canteenName is the correct field */}
+                      <p className="text-sm font-bold text-gray-800 dark:text-white truncate">
+                        {c.canteenName || c.name || '—'}
+                      </p>
+                      <p className="text-[10px] text-gray-400 truncate">{c.ownerName || '—'}</p>
                     </div>
                   </div>
+
+                  {/* Visibility status badge */}
                   <div className="col-span-2">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${c.isActive ? 'bg-green-50 text-green-600 ring-1 ring-green-200 dark:bg-green-900/20 dark:text-green-400 dark:ring-green-800' : 'bg-gray-100 text-gray-500 ring-1 ring-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:ring-gray-600'}`}>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      c.isActive
+                        ? 'bg-green-50 text-green-600 ring-1 ring-green-200 dark:bg-green-900/20 dark:text-green-400 dark:ring-green-800'
+                        : 'bg-gray-100 text-gray-500 ring-1 ring-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:ring-gray-600'
+                    }`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${c.isActive ? 'bg-green-500' : 'bg-gray-400'}`} />
-                      {c.isActive ? 'Active' : 'Hidden'}
+                      {c.isActive ? 'Visible' : 'Hidden'}
                     </span>
                   </div>
-                  <div className="col-span-2"><StarRating rating={c.rating || c.averageRating} /></div>
+
+                  {/* ✅ Rating — uses averageRating + totalRatings from aggregation */}
+                  <div className="col-span-2">
+                    <StarRating rating={c.averageRating} totalRatings={c.totalRatings} />
+                  </div>
+
+                  {/* ✅ Orders — uses totalOrders from aggregation */}
                   <div className="col-span-2">
                     <div className="flex items-center gap-1.5">
                       <ShoppingBag className="w-3.5 h-3.5 text-gray-400" />
-                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{fmt(c.orderCount || c.totalOrders || 0)}</span>
+                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                        {fmt(c.totalOrders)}
+                      </span>
                     </div>
                   </div>
+
+                  {/* ✅ Complaints — uses complaintCount from aggregation */}
                   <div className="col-span-2">
                     <div className="flex items-center gap-1.5">
-                      <AlertTriangle className={`w-3.5 h-3.5 ${(c.complaintCount||0) > 0 ? 'text-amber-400' : 'text-gray-300 dark:text-gray-600'}`} />
-                      <span className={`text-sm font-bold ${(c.complaintCount||0) > 0 ? 'text-amber-500' : 'text-gray-400'}`}>{fmt(c.complaintCount || 0)}</span>
+                      <AlertTriangle className={`w-3.5 h-3.5 ${(c.complaintCount || 0) > 0 ? 'text-amber-400' : 'text-gray-300 dark:text-gray-600'}`} />
+                      <span className={`text-sm font-bold ${(c.complaintCount || 0) > 0 ? 'text-amber-500' : 'text-gray-400'}`}>
+                        {fmt(c.complaintCount)}
+                      </span>
                     </div>
                   </div>
+
+                  {/* Toggle button */}
                   <div className="col-span-1 flex justify-end">
-                    <button onClick={() => handleToggle(c._id, c.isActive)} disabled={toggling === c._id}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition-all disabled:opacity-50 ${c.isActive ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600' : 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 hover:bg-primary-100'}`}>
-                      {toggling === c._id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        : c.isActive ? <><EyeOff className="w-3.5 h-3.5" /> Hide</> : <><Eye className="w-3.5 h-3.5" /> Show</>}
+                    <button
+                      onClick={() => handleToggle(c._id, c.isActive)}
+                      disabled={toggling === c._id}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition-all disabled:opacity-50 ${
+                        c.isActive
+                          ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                          : 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-100'
+                      }`}
+                    >
+                      {toggling === c._id
+                        ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        : c.isActive
+                          ? <><EyeOff className="w-3.5 h-3.5" /> Hide</>
+                          : <><Eye className="w-3.5 h-3.5" /> Show</>
+                      }
                     </button>
                   </div>
                 </div>

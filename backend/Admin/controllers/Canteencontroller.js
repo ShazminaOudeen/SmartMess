@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const User = require('../../Auth/models/User');
+const User    = require('../../Auth/models/User');
 const Canteen = require('../../models/Canteen');
 const { logActivity } = require('./dashboardController');
 
@@ -38,7 +38,6 @@ const getCanteens = async (req, res) => {
   try {
     const { status = 'pending' } = req.query;
 
-    // ✅ pending and rejected come from users collection
     if (status === 'pending' || status === 'rejected') {
       const users = await User.find({ role: 'canteen', status })
         .select('-password')
@@ -64,7 +63,6 @@ const getCanteens = async (req, res) => {
       return res.json({ success: true, data });
     }
 
-    // ✅ approved and all come from canteens collection
     let filter = {};
     if (status === 'approved') filter = { isApproved: true };
 
@@ -74,22 +72,47 @@ const getCanteens = async (req, res) => {
       .toArray();
 
     const enriched = await Promise.all(canteens.map(async (c) => {
-      const [orderCount, complaintCount, ownerUser] = await Promise.all([
-        getCollection('orders').countDocuments({ canteen: c._id }),
-        getCollection('complaints').countDocuments({ canteen: c._id }).catch(() => 0),
-        // ✅ fetch owner user to get email + registrationDocument
-        User.findById(c.owner).select('email registrationDocument').lean(),
+      const canteenObjId = typeof c._id === 'string'
+        ? new mongoose.Types.ObjectId(c._id)
+        : c._id;
+
+      const ownerObjId = c.owner
+        ? (typeof c.owner === 'string' ? new mongoose.Types.ObjectId(c.owner) : c.owner)
+        : null;
+
+      const [orderCount, complaintCount, ratingAgg, ownerUser] = await Promise.all([
+        // ✅ cast to ObjectId explicitly
+        getCollection('orders').countDocuments({ canteen: canteenObjId }),
+
+        // ✅ count complaints by canteenId
+        getCollection('complaints').countDocuments({ canteenId: canteenObjId }),
+
+        // ratings — aggregate avg and count
+        getCollection('ratings').aggregate([
+          { $match: { canteen: canteenObjId } },
+          { $group: {
+              _id:           null,
+              averageRating: { $avg: '$rating' },
+              totalRatings:  { $sum: 1 },
+          }},
+        ]).toArray(),
+
+        ownerObjId
+          ? User.findById(ownerObjId).select('email registrationDocument').lean()
+          : Promise.resolve(null),
       ]);
+
+      const avg = ratingAgg[0];
 
       return {
         ...c,
-        name:       c.canteenName || c.name,
+        name:          c.canteenName || c.name,
         orderCount,
         complaintCount,
-        // ✅ email from canteen doc or fallback to user record
-        ownerEmail: c.email || ownerUser?.email || '—',
-        // ✅ normalize documents — canteen doc first, then user record fallback
-        documents: c.documents?.length
+        averageRating: avg ? parseFloat(avg.averageRating.toFixed(1)) : 0,
+        totalRatings:  avg ? avg.totalRatings : 0,
+        ownerEmail:    c.email || ownerUser?.email || '—',
+        documents:     c.documents?.length
           ? c.documents
           : c.registrationDocument
             ? [c.registrationDocument]
@@ -114,19 +137,54 @@ const getApprovedCanteens = async (req, res) => {
       .toArray();
 
     const enriched = await Promise.all(canteens.map(async (c) => {
-      const [orderCount, complaintCount, ownerUser] = await Promise.all([
-        getCollection('orders').countDocuments({ canteen: c._id }),
-        getCollection('complaints').countDocuments({ canteen: c._id }).catch(() => 0),
-        User.findById(c.owner).select('email registrationDocument').lean(),
+      // Ensure proper ObjectId types for queries
+      const canteenObjId = typeof c._id === 'string'
+        ? new mongoose.Types.ObjectId(c._id)
+        : c._id;
+
+      const ownerObjId = c.owner
+        ? (typeof c.owner === 'string' ? new mongoose.Types.ObjectId(c.owner) : c.owner)
+        : null;
+
+      const [orderCount, complaintCount, ratingAgg, ownerUser] = await Promise.all([
+
+        // ✅ Fix 1: cast to ObjectId explicitly
+        getCollection('orders').countDocuments({ canteen: canteenObjId }),
+
+        // ✅ Fix 2: count complaints where canteenId matches this canteen
+        getCollection('complaints').countDocuments({ canteenId: canteenObjId }),
+
+        // ✅ Fix 3: ratings were never fetched — aggregate avg + count
+        getCollection('ratings').aggregate([
+          { $match: { canteen: canteenObjId } },
+          { $group: {
+              _id:           null,
+              averageRating: { $avg: '$rating' },
+              totalRatings:  { $sum: 1 },
+          }},
+        ]).toArray(),
+
+        ownerObjId
+          ? User.findById(ownerObjId).select('email registrationDocument').lean()
+          : Promise.resolve(null),
       ]);
+
+      const avg = ratingAgg[0]; // will be undefined if no ratings exist
 
       return {
         ...c,
-        name: c.canteenName || c.name,
-        orderCount,
+        name:          c.canteenName || c.name,
+        // orders
+        totalOrders:   orderCount,
+        orderCount,    // keep for backward compat with getCanteens usage
+        // complaints
         complaintCount,
-        ownerEmail: c.email || ownerUser?.email || '—',
-        documents: c.documents?.length
+        // ratings
+        averageRating: avg ? parseFloat(avg.averageRating.toFixed(1)) : 0,
+        totalRatings:  avg ? avg.totalRatings : 0,
+        // owner info
+        ownerEmail:    c.email || ownerUser?.email || '—',
+        documents:     c.documents?.length
           ? c.documents
           : c.registrationDocument
             ? [c.registrationDocument]
@@ -162,12 +220,12 @@ const approveCanteen = async (req, res) => {
         ownerName:            user.name,
         name:                 user.canteenName,
         canteenName:          user.canteenName,
-        email:                user.email,       // ✅ save email
+        email:                user.email,
         phone:                user.phone,
         location:             user.location,
         isApproved:           true,
         isActive:             true,
-        registrationDocument: user.registrationDocument || '', // ✅ save document
+        registrationDocument: user.registrationDocument || '',
       });
     } else {
       await Canteen.findOneAndUpdate(
@@ -175,7 +233,7 @@ const approveCanteen = async (req, res) => {
         {
           isApproved:           true,
           isActive:             true,
-          email:                existing.email  || user.email,
+          email:                existing.email || user.email,
           registrationDocument: existing.registrationDocument || user.registrationDocument || '',
         }
       );

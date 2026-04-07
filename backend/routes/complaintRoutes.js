@@ -4,6 +4,7 @@ const Complaint = require('../Admin/models/Complaint');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const mongoose = require('mongoose');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -19,17 +20,30 @@ const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 router.post('/', upload.single('attachment'), async (req, res) => {
   try {
-    const { submittedByName, submittedByEmail, submitterId, category, description } = req.body;
+    const {
+      submittedByName,
+      submittedByEmail,
+      submitterId,
+      canteenId,       // ✅ received from frontend
+      category,
+      description,
+    } = req.body;
+
     const complaint = new Complaint({
       submittedByName,
       submittedByEmail: submittedByEmail || '',
-      submitterId: submitterId || undefined,
-      submitterType: 'user',
+      submitterId:      submitterId  || undefined,
+      // ✅ save canteenId so admin can count complaints per canteen
+      canteenId:        canteenId && mongoose.Types.ObjectId.isValid(canteenId)
+                          ? new mongoose.Types.ObjectId(canteenId)
+                          : null,
+      submitterType:    'user',
       category,
       description,
       attachment: req.file ? `/uploads/complaints/${req.file.filename}` : undefined,
       status: 'pending',
     });
+
     await complaint.save();
     res.status(201).json({ success: true, message: 'Complaint submitted successfully!', data: complaint });
   } catch (error) {

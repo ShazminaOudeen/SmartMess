@@ -183,6 +183,7 @@ export default function MealListingPage() {
       formData.append("submittedByName",  studentName);
       formData.append("submittedByEmail", studentEmail);
       formData.append("submitterId",      studentId);
+      formData.append("canteenId",        canteenId);
       formData.append("category",         reportCategory);
       formData.append("description",       reportDesc);
       formData.append("priority",          reportPriority);
