@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Star, ArrowLeft, CheckCircle, AlertCircle, Utensils } from "lucide-react";
 import { trackingAPI } from "../../api/studentApi";
-
-// ❌ Remove this line - TEMP_STUDENT_ID removed
+import { useAuth } from "../../context/AuthContext";   // ✅ use the same auth hook as everywhere else
 
 const QUICK_TAGS = [
   "Delicious", "Good Portion", "Fast Service", "Value for Money",
@@ -13,18 +12,20 @@ const QUICK_TAGS = [
 export default function RatingFeedbackForm() {
   const { orderId, canteenId } = useParams();
   const navigate = useNavigate();
-  const [order, setOrder]       = useState(null);
-  const [loading, setLoading]   = useState(true);
-  const [rating, setRating]     = useState(0);
-  const [hover, setHover]       = useState(0);
-  const [feedback, setFeedback] = useState("");
-  const [tags, setTags]         = useState([]);
+
+  // ✅ Get user from AuthContext — same as the rest of the app
+  const { user } = useAuth();
+  const studentId = user?._id || user?.id;
+
+  const [order, setOrder]           = useState(null);
+  const [loading, setLoading]       = useState(true);
+  const [rating, setRating]         = useState(0);
+  const [hover, setHover]           = useState(0);
+  const [feedback, setFeedback]     = useState("");
+  const [tags, setTags]             = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted]   = useState(false);
   const [error, setError]           = useState("");
-
-  // ✅ Get studentId from localStorage
-  const studentId = localStorage.getItem('userId');
 
   useEffect(() => {
     trackingAPI.trackStatus(orderId).then((res) => {
@@ -39,19 +40,27 @@ export default function RatingFeedbackForm() {
     );
   };
 
-  // ✅ Updated handleSubmit with studentId
   const handleSubmit = async () => {
     if (rating === 0) { setError("Please select a rating"); return; }
+
+    // ✅ Guard: if studentId still null, show a clear error instead of a cryptic backend crash
+    if (!studentId) {
+      setError("Could not identify your account. Please log out and log back in.");
+      return;
+    }
+
     setSubmitting(true);
     setError("");
+
     const res = await trackingAPI.submitRating({
-      studentId,   // ✅ Was TEMP_STUDENT_ID
+      studentId,
       orderId,
       canteenId,
       rating,
       feedback,
       tags,
     });
+
     if (res.success) {
       setSubmitted(true);
     } else {
@@ -82,7 +91,9 @@ export default function RatingFeedbackForm() {
             <CheckCircle size={40} className="text-green-600" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Thank You!</h2>
-          <p className="text-gray-500 dark:text-gray-400 mb-6">Your feedback helps improve the canteen experience</p>
+          <p className="text-gray-500 dark:text-gray-400 mb-6">
+            Your feedback helps improve the canteen experience
+          </p>
           <div className="flex justify-center gap-1 mb-6">
             {[1,2,3,4,5].map((s) => (
               <Star key={s} size={24}
@@ -125,7 +136,9 @@ export default function RatingFeedbackForm() {
 
           {/* Star rating */}
           <div className="text-center mb-6">
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">How was your experience?</p>
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">
+              How was your experience?
+            </p>
             <div className="flex justify-center gap-2">
               {[1,2,3,4,5].map((star) => (
                 <button key={star}
