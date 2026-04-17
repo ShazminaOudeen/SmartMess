@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from "../../../context/ThemeContext";
+import { buildImgUrl } from '../../../utils/imageUrl';
 import logo from "../../../assets/logo.png";
 import {
   LayoutDashboard, Store, Clock, UtensilsCrossed,
@@ -96,7 +97,7 @@ const canteen = { name: user?.canteenName || user?.name || 'My Canteen', image: 
       >
         <div className="relative flex-shrink-0">
           {canteen.image ? (
-            <img src={`http://localhost:5000${canteen.image}`} alt={canteen.name}
+            <img src={buildImgUrl(canteen.image)} alt={canteen.name}
               className="w-10 h-10 rounded-xl object-cover ring-2 ring-green-400/30" />
           ) : (
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center shadow-sm">
