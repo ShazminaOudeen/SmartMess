@@ -27,16 +27,18 @@ const submitReport = async (req, res) => {
       category,
       description,
     } = req.body;
- 
+  console.log('REQ BODY:', req.body);
+    console.log('CANTEEN NAME RECEIVED:', canteenName);
     if (!category || !description?.trim()) {
       return res.status(400).json({ success: false, message: 'Category and description are required' });
     }
  
     const complaint = await Complaint.create({
-      submittedByName:  submittedByName || canteenName || 'Canteen User',
+       submittedByName:  submittedByName || 'Canteen User', 
       submittedByEmail: submittedByEmail || '',
       submitterId:      submitterId || req.user?._id,
       submitterType:    submitterType || 'canteen',
+       canteenName:      canteenName || '',     
       category,
       description:      description.trim(),
       attachment:       req.file ? `/uploads/reports/${req.file.filename}` : '',

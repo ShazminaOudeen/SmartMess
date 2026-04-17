@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { buildImgUrl } from '../../utils/imageUrl';
 import {
   Store, MapPin, User, FileText, Camera, Save,
   CheckCircle, XCircle, Loader2, Upload, Trash2, Phone, Mail
@@ -77,9 +78,6 @@ export default function CanteenProfile() {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
   };
-
-  const buildImgUrl = (path) =>
-    path ? (path.startsWith('blob:') ? path : `http://localhost:5000${path}`) : null;
 
   useEffect(() => {
     if (!token) {

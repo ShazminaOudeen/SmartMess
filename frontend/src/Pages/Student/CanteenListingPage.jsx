@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, MapPin, Clock, ChevronRight, UtensilsCrossed, Star, StarOff } from "lucide-react";
 import { canteenAPI } from "../../api/studentApi";
+import { buildImgUrl } from '../../utils/imageUrl';
 
 const STORAGE_KEY_FAV = "smartmess_fav_canteens";
 
@@ -90,7 +91,7 @@ export default function CanteenListingPage() {
                   className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 transition-all flex-shrink-0">
                   <div className="w-7 h-7 rounded-lg bg-white dark:bg-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0">
                     {c.image
-                      ? <img src={c.image} alt={c.canteenName || c.name} className="w-full h-full object-cover" />
+                      ? <img src={buildImgUrl(c.image)} alt={c.canteenName || c.name} className="w-full h-full object-cover" />
                       : <UtensilsCrossed size={13} className="text-green-500" />}
                   </div>
                   <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 whitespace-nowrap">
@@ -181,7 +182,7 @@ export default function CanteenListingPage() {
                 {/* Image */}
                 <div className="w-full h-40 rounded-xl bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-700 dark:to-gray-600 mb-4 overflow-hidden flex items-center justify-center">
                   {canteen.image
-                    ? <img src={canteen.image} alt={canteen.canteenName || canteen.name} className="w-full h-full object-cover" />
+                    ? <img src={buildImgUrl(canteen.image)} alt={canteen.canteenName || canteen.name} className="w-full h-full object-cover" />
                     : <UtensilsCrossed size={40} className="text-green-300 dark:text-gray-500" />}
                 </div>
 

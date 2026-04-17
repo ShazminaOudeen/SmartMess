@@ -1,5 +1,6 @@
 
 import { useState, useRef } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import {
   Bug, Zap, Lightbulb, HelpCircle, AlertTriangle,
   Upload, X, Send, CheckCircle, Phone, Mail,
@@ -15,12 +16,13 @@ const CATEGORIES = [
 ];
 
 export default function ReportIssuePage() {
-  const user     = JSON.parse(localStorage.getItem('user') || '{}');
-  const canteen  = user.canteenName || user.name || 'My Canteen';
-  const userId   = user._id || user.id || '';
+  const { user, token } = useAuth();
+
+  // ✅ Do NOT compute canteen at top level — user may be null on first render
+  const userId = user?._id || user?.id || '';
 
   const [form, setForm] = useState({
-    reporterName: user.name || '',
+    reporterName: user?.name || '',
     category:     '',
     description:  '',
   });
@@ -42,19 +44,21 @@ export default function ReportIssuePage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.category)    { setError('Please select a category'); return; }
+    if (!form.category)           { setError('Please select a category'); return; }
     if (!form.description.trim()) { setError('Please describe the issue'); return; }
+
+    // ✅ Read canteen name HERE at submit time — user is guaranteed to be loaded by now
+    const canteenName = user?.canteenName || 'My Canteen';
 
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
-      const fd    = new FormData();
-      fd.append('submittedByName',  form.reporterName || canteen);
-      fd.append('submittedByEmail', user.email || '');
+      const fd = new FormData();
+      fd.append('submittedByName',  form.reporterName || user?.name || '');
+      fd.append('submittedByEmail', user?.email || '');
       fd.append('submitterId',      userId);
       fd.append('submitterType',    'canteen');
-      fd.append('canteenName',      canteen);
+      fd.append('canteenName',      canteenName);
       fd.append('category',         form.category);
       fd.append('description',      form.description);
       if (image) fd.append('attachment', image);
@@ -74,6 +78,15 @@ export default function ReportIssuePage() {
     }
   };
 
+  const handleReset = () => {
+    setSubmitted(false);
+    setForm({ reporterName: user?.name || '', category: '', description: '' });
+    setImage(null);
+    setPreview(null);
+    setError('');
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
   // ── Success screen ──────────────────────────────────────────────────────────
   if (submitted) return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 items-center justify-center px-6">
@@ -85,7 +98,7 @@ export default function ReportIssuePage() {
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
           Our team will review your report and get back to you shortly.
         </p>
-        <button onClick={() => { setSubmitted(false); setForm({ reporterName: user.name || '', category: '', description: '' }); setImage(null); setPreview(null); }}
+        <button onClick={handleReset}
           className="w-full py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold text-sm transition-colors">
           Submit Another Report
         </button>
@@ -116,12 +129,17 @@ export default function ReportIssuePage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-gray-50 dark:bg-gray-700/40 rounded-xl px-4 py-3">
                     <p className="text-[10px] text-gray-400 mb-0.5">Canteen</p>
-                    <p className="text-sm font-bold text-gray-800 dark:text-white truncate">{canteen}</p>
+                    {/* ✅ Read directly from user at render time */}
+                    <p className="text-sm font-bold text-gray-800 dark:text-white truncate">
+                      {user?.canteenName || 'Loading...'}
+                    </p>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-700/40 rounded-xl px-4 py-3">
-                    <p className="text-[10px] text-gray-400 mb-0.5">User ID</p>
-                    <p className="text-sm font-bold text-gray-800 dark:text-white truncate font-mono">{userId || 'Not logged in'}</p>
-                  </div>
+                 <div className="bg-gray-50 dark:bg-gray-700/40 rounded-xl px-4 py-3">
+       <p className="text-[10px] text-gray-400 mb-0.5">User ID</p>
+      <p className="text-sm font-bold text-gray-800 dark:text-white truncate font-mono">
+    {userId ? `Canteen-${userId.slice(-4)}` : 'Not logged in'}
+  </p>
+</div>
                 </div>
               </div>
 
@@ -130,7 +148,15 @@ export default function ReportIssuePage() {
                 <label className="text-xs font-bold uppercase tracking-widest text-gray-400 block mb-3">Reporter Name</label>
                 <input
                   value={form.reporterName}
-                  onChange={e => setForm(f => ({ ...f, reporterName: e.target.value }))}
+                  onChange={e => {
+                    const value = e.target.value;
+                    if (/^[A-Za-z\s]*$/.test(value)) {
+                      setForm(f => ({ ...f, reporterName: value }));
+                      setError('');
+                    } else {
+                      setError('Name can only contain letters and spaces');
+                    }
+                  }}
                   placeholder="Your name"
                   className="w-full px-4 py-3 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all"
                 />
@@ -199,16 +225,15 @@ export default function ReportIssuePage() {
               )}
 
               <div className="flex gap-3">
-  <button type="button"
-    onClick={() => { setForm({ reporterName: user.name || '', category: '', description: '' }); setImage(null); setPreview(null); setError(''); if (fileRef.current) fileRef.current.value = ''; }}
-   className="flex-1 py-3.5 rounded-xl border-2 border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300 font-bold text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-    Discard
-  </button>
-  <button type="submit" disabled={loading}
-    className="flex-1 py-3.5 rounded-xl bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white font-bold text-sm flex items-center justify-center gap-2 transition-colors shadow-lg shadow-green-500/20">
-    {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</> : <><Send className="w-4 h-4" /> Submit Report</>}
-  </button>
-</div>
+                <button type="button" onClick={handleReset}
+                  className="flex-1 py-3.5 rounded-xl border-2 border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300 font-bold text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                  Discard
+                </button>
+                <button type="submit" disabled={loading}
+                  className="flex-1 py-3.5 rounded-xl bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white font-bold text-sm flex items-center justify-center gap-2 transition-colors shadow-lg shadow-green-500/20">
+                  {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</> : <><Send className="w-4 h-4" /> Submit Report</>}
+                </button>
+              </div>
             </form>
 
             {/* ── Side Panel ── */}
@@ -216,10 +241,8 @@ export default function ReportIssuePage() {
 
               {/* Emergency help poster */}
               <div className="bg-gradient-to-br from-red-500 to-red-700 rounded-2xl p-5 text-white relative overflow-hidden">
-                {/* decorative circles */}
                 <div className="absolute -top-6 -right-6 w-24 h-24 bg-white/10 rounded-full" />
                 <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-white/10 rounded-full" />
-
                 <div className="relative">
                   <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mb-3">
                     <AlertTriangle className="w-5 h-5 text-white" />
@@ -300,8 +323,8 @@ export default function ReportIssuePage() {
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Available Mon–Fri, 8AM–6PM</p>
               </div>
-            </div>
 
+            </div>
           </div>
         </div>
       </div>

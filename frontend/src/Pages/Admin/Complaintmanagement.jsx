@@ -12,7 +12,6 @@ const fmtDate  = (d) => d ? new Date(d).toLocaleDateString('en-US', { day:'numer
 const fmtTime  = (d) => d ? new Date(d).toLocaleString('en-US', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '—';
 const getId    = (id) => id ? String(id).slice(-6).toUpperCase() : '??????';
 
-// ✅ Use env variable so it works on all machines, not just localhost
 const imgUrl = (path) => path ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${path}` : null;
 
 const STATUS = {
@@ -110,10 +109,14 @@ const EmailModal = ({ complaint, onClose, onSend, sending }) => {
   );
 };
 
-// ✅ DetailModal — shows only description + attachment + status actions
 const DetailModal = ({ complaint, onClose, onStatusChange, onEmail, statusLoading }) => {
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   if (!complaint) return null;
+
+  // ✅ Resolve canteen name: explicit field first, fallback to submittedByName if submitter is a canteen
+  const resolvedCanteenName =
+  (complaint.canteenName  && complaint.canteenName  !== '—' ? complaint.canteenName  : null) ||
+  (complaint.canteen?.name ? complaint.canteen.name : null);
 
   const STATUS_ACTIONS = [
     { key: 'pending',  label: 'Mark Pending',  icon: Clock,       cls: 'text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20' },
@@ -142,8 +145,21 @@ const DetailModal = ({ complaint, onClose, onStatusChange, onEmail, statusLoadin
           </button>
         </div>
 
-        {/* ✅ Body — description only */}
+        {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+
+          {/* ✅ Canteen name — shown for both "about a canteen" and "submitted by canteen" */}
+          {resolvedCanteenName && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800">
+              <Store className="w-4 h-4 text-purple-500 flex-shrink-0" />
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-purple-400 mb-0.5">
+                  {complaint.submitterType === 'canteen' ? 'Submitted By Canteen' : 'Complaint About'}
+                </p>
+                <p className="text-sm font-bold text-purple-700 dark:text-purple-300">{resolvedCanteenName}</p>
+              </div>
+            </div>
+          )}
 
           {/* Description */}
           <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
@@ -153,12 +169,11 @@ const DetailModal = ({ complaint, onClose, onStatusChange, onEmail, statusLoadin
             </p>
           </div>
 
-          {/* Attachment — only if present */}
+          {/* Attachment */}
           {complaint.attachment && (
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-2">Attachment</p>
               <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-600">
-                {/* ✅ Fixed image URL using env variable */}
                 <img
                   src={imgUrl(complaint.attachment)}
                   alt="Complaint attachment"
@@ -269,7 +284,8 @@ const ComplaintManagement = () => {
         c.submittedByName?.toLowerCase().includes(q) ||
         c.submittedByEmail?.toLowerCase().includes(q) ||
         c.category?.toLowerCase().includes(q) ||
-        c.description?.toLowerCase().includes(q)
+        c.description?.toLowerCase().includes(q) ||
+        c.canteenName?.toLowerCase().includes(q)
       );
     }
     setComplaints(result);
@@ -368,32 +384,42 @@ const ComplaintManagement = () => {
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
               <input value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Search by complaint ID, name, email, category or description..."
+                placeholder="Search by ID, name, email, canteen, category or description..."
                 className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all" />
             </div>
           </div>
 
-          <div className="grid grid-cols-12 gap-3 px-5 py-2.5 bg-gray-50 dark:bg-gray-700/30 border-b border-gray-100 dark:border-gray-700/60">
-            {['ID','Submitted By','Type','Category','Description','Date','Status','Actions'].map((h, i) => (
-              <div key={h} className={`text-[10px] font-bold uppercase tracking-widest text-gray-400 ${
-                i === 0 ? 'col-span-1' : i === 1 ? 'col-span-2' : i === 2 ? 'col-span-1' :
-                i === 3 ? 'col-span-2' : i === 4 ? 'col-span-3' : i === 5 ? 'col-span-1' :
-                i === 6 ? 'col-span-1' : 'col-span-1 text-right'}`}>{h}</div>
+          {/* Table header */}
+          <div className="grid grid-cols-13 gap-3 px-5 py-2.5 bg-gray-50 dark:bg-gray-700/30 border-b border-gray-100 dark:border-gray-700/60" style={{ gridTemplateColumns: 'repeat(13, minmax(0, 1fr))' }}>
+            {[
+              { label: 'ID',           span: 1 },
+              { label: 'Submitted By', span: 2 },
+              { label: 'Type',         span: 1 },
+              { label: 'Canteen',      span: 2 },
+              { label: 'Category',     span: 2 },
+              { label: 'Description',  span: 2 },
+              { label: 'Date',         span: 1 },
+              { label: 'Status',       span: 1 },
+              { label: 'Actions',      span: 1 },
+            ].map(({ label, span }) => (
+              <div key={label} style={{ gridColumn: `span ${span}` }}
+                className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{label}</div>
             ))}
           </div>
 
           {loading ? (
             <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
               {[1,2,3,4,5].map(i => (
-                <div key={i} className="grid grid-cols-12 gap-3 px-5 py-3.5 animate-pulse items-center">
-                  <div className="col-span-1 h-5 w-14 bg-gray-200 dark:bg-gray-700 rounded" />
-                  <div className="col-span-2 h-3 w-24 bg-gray-200 dark:bg-gray-700 rounded" />
-                  <div className="col-span-1 h-5 w-12 bg-gray-100 dark:bg-gray-700 rounded-full" />
-                  <div className="col-span-2 h-3 w-20 bg-gray-100 dark:bg-gray-700 rounded" />
-                  <div className="col-span-3 h-3 bg-gray-100 dark:bg-gray-700 rounded" />
-                  <div className="col-span-1 h-3 w-16 bg-gray-100 dark:bg-gray-700 rounded" />
-                  <div className="col-span-1 h-5 w-16 bg-gray-100 dark:bg-gray-700 rounded-full" />
-                  <div className="col-span-1 flex gap-1 justify-end">
+                <div key={i} className="grid px-5 py-3.5 animate-pulse items-center gap-3" style={{ gridTemplateColumns: 'repeat(13, minmax(0, 1fr))' }}>
+                  <div className="h-5 w-14 bg-gray-200 dark:bg-gray-700 rounded" style={{ gridColumn: 'span 1' }} />
+                  <div className="h-3 w-24 bg-gray-200 dark:bg-gray-700 rounded" style={{ gridColumn: 'span 2' }} />
+                  <div className="h-5 w-12 bg-gray-100 dark:bg-gray-700 rounded-full" style={{ gridColumn: 'span 1' }} />
+                  <div className="h-3 w-20 bg-gray-100 dark:bg-gray-700 rounded" style={{ gridColumn: 'span 2' }} />
+                  <div className="h-3 w-20 bg-gray-100 dark:bg-gray-700 rounded" style={{ gridColumn: 'span 2' }} />
+                  <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded" style={{ gridColumn: 'span 2' }} />
+                  <div className="h-3 w-16 bg-gray-100 dark:bg-gray-700 rounded" style={{ gridColumn: 'span 1' }} />
+                  <div className="h-5 w-16 bg-gray-100 dark:bg-gray-700 rounded-full" style={{ gridColumn: 'span 1' }} />
+                  <div className="flex gap-1 justify-end" style={{ gridColumn: 'span 1' }}>
                     <div className="h-7 w-7 bg-gray-100 dark:bg-gray-700 rounded-lg" />
                     <div className="h-7 w-7 bg-gray-100 dark:bg-gray-700 rounded-lg" />
                   </div>
@@ -409,51 +435,88 @@ const ComplaintManagement = () => {
             </div>
           ) : (
             <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
-              {complaints.map(c => (
-                <div key={c._id} className="grid grid-cols-12 gap-3 px-5 py-3 items-center hover:bg-gray-50 dark:hover:bg-gray-700/20 transition-colors">
-                  <div className="col-span-1">
-                    <span className="text-[11px] font-black text-gray-400 dark:text-gray-500 font-mono">#{getId(c._id)}</span>
-                  </div>
-                  <div className="col-span-2 min-w-0">
-                    <p className="text-xs font-bold text-gray-800 dark:text-white truncate">{c.submittedByName || '—'}</p>
-                    <p className="text-[10px] text-gray-400 truncate">{c.submittedByEmail || '—'}</p>
-                  </div>
-                  <div className="col-span-1">
-                    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
-                      c.submitterType === 'canteen'
-                        ? 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400'
-                        : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'}`}>
-                      {c.submitterType === 'canteen' ? <Store className="w-2.5 h-2.5" /> : <User className="w-2.5 h-2.5" />}
-                      {c.submitterType === 'canteen' ? 'Canteen' : 'User'}
-                    </span>
-                  </div>
-                  <div className="col-span-2 min-w-0">
-                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate">{c.category || '—'}</p>
-                  </div>
-                  <div className="col-span-3 min-w-0">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.description || '—'}</p>
-                    {c.attachment && (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] text-blue-400 mt-0.5">
-                        <Paperclip className="w-2.5 h-2.5" /> Attachment
+              {complaints.map(c => {
+                // ✅ Resolve canteen name for table row: explicit field first,
+                // fallback to submittedByName if the submitter is a canteen
+                const resolvedCanteenName =
+  (c.canteenName  && c.canteenName  !== '—' ? c.canteenName  : null) ||
+  (c.canteen?.name ? c.canteen.name : null);
+
+                return (
+                  <div key={c._id} className="grid px-5 py-3 items-center hover:bg-gray-50 dark:hover:bg-gray-700/20 transition-colors gap-3"
+                    style={{ gridTemplateColumns: 'repeat(13, minmax(0, 1fr))' }}>
+
+                    {/* ID */}
+                    <div style={{ gridColumn: 'span 1' }}>
+                      <span className="text-[11px] font-black text-gray-400 dark:text-gray-500 font-mono">#{getId(c._id)}</span>
+                    </div>
+
+                    {/* Submitted By */}
+                    <div style={{ gridColumn: 'span 2' }} className="min-w-0">
+                      <p className="text-xs font-bold text-gray-800 dark:text-white truncate">{c.submittedByName || '—'}</p>
+                      <p className="text-[10px] text-gray-400 truncate">{c.submittedByEmail || '—'}</p>
+                    </div>
+
+                    {/* Type */}
+                    <div style={{ gridColumn: 'span 1' }}>
+                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                        c.submitterType === 'canteen'
+                          ? 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400'
+                          : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'}`}>
+                        {c.submitterType === 'canteen' ? <Store className="w-2.5 h-2.5" /> : <User className="w-2.5 h-2.5" />}
+                        {c.submitterType === 'canteen' ? 'Canteen' : 'User'}
                       </span>
-                    )}
+                    </div>
+
+                    {/* ✅ Canteen Name — shows for both "about a canteen" and "submitted by canteen" */}
+                    <div style={{ gridColumn: 'span 2' }} className="min-w-0">
+                      {resolvedCanteenName ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 truncate max-w-full">
+                          <Store className="w-2.5 h-2.5 flex-shrink-0" />
+                          <span className="truncate">{resolvedCanteenName}</span>
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-gray-300 dark:text-gray-600">—</span>
+                      )}
+                    </div>
+
+                    {/* Category */}
+                    <div style={{ gridColumn: 'span 2' }} className="min-w-0">
+                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate">{c.category || '—'}</p>
+                    </div>
+
+                    {/* Description */}
+                    <div style={{ gridColumn: 'span 2' }} className="min-w-0">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.description || '—'}</p>
+                      {c.attachment && (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] text-blue-400 mt-0.5">
+                          <Paperclip className="w-2.5 h-2.5" /> Attachment
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Date */}
+                    <div style={{ gridColumn: 'span 1' }}>
+                      <p className="text-[10px] text-gray-400">{fmtDate(c.createdAt)}</p>
+                    </div>
+
+                    {/* Status */}
+                    <div style={{ gridColumn: 'span 1' }}><StatusBadge status={c.status} /></div>
+
+                    {/* Actions */}
+                    <div style={{ gridColumn: 'span 1' }} className="flex items-center justify-end gap-1">
+                      <button onClick={() => setSelected(c)} title="View Details"
+                        className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-600 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600 transition-colors">
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => setEmailTarget(c)} title="Send Email"
+                        className="w-7 h-7 flex items-center justify-center rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 text-blue-500 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">
+                        <Mail className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="col-span-1">
-                    <p className="text-[10px] text-gray-400">{fmtDate(c.createdAt)}</p>
-                  </div>
-                  <div className="col-span-1"><StatusBadge status={c.status} /></div>
-                  <div className="col-span-1 flex items-center justify-end gap-1">
-                    <button onClick={() => setSelected(c)} title="View Details"
-                      className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-600 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600 transition-colors">
-                      <Eye className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={() => setEmailTarget(c)} title="Send Email"
-                      className="w-7 h-7 flex items-center justify-center rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 text-blue-500 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">
-                      <Mail className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
