@@ -12,17 +12,7 @@ const getCanteenId = async (userId) => {
   return canteen?._id || null;
 };
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = path.join(__dirname, '../../uploads/meals');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `meal_${Date.now()}${ext}`);
-  },
-});
+const storage = multer.memoryStorage(); // ← change to memory
 const fileFilter = (req, file, cb) => {
   ['image/jpeg','image/jpg','image/png','image/webp'].includes(file.mimetype)
     ? cb(null, true) : cb(new Error('Only JPG, PNG, WEBP allowed'));
@@ -85,7 +75,7 @@ const addMeal = async (req, res) => {
       isAvailable: isAvailable === 'true' || isAvailable === true,
       defaultSize: defaultSize || 'Medium',
       sizes:       sizes ? JSON.parse(sizes) : {},
-      image:       req.file ? `/uploads/meals/${req.file.filename}` : null,
+      image: req.file ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}` : null,
     });
 
     res.json({ success: true, message: 'Meal added', data: meal });
@@ -136,7 +126,7 @@ const updateMeal = async (req, res) => {
       defaultSize: defaultSize || 'Medium',
       sizes:       sizes ? JSON.parse(sizes) : {},
     };
-    if (req.file) updateData.image = `/uploads/meals/${req.file.filename}`;
+   if (req.file) updateData.image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
 
     const meal = await Meal.findByIdAndUpdate(req.params.id, { $set: updateData }, { new: true });
     if (!meal) return res.status(404).json({ success: false, message: 'Meal not found' });
@@ -159,11 +149,6 @@ const toggleAvailability = async (req, res) => {
 // ── DELETE /api/canteen/meals/:id ─────────────────────────────────────────────
 const deleteMeal = async (req, res) => {
   try {
-    const meal = await Meal.findById(req.params.id);
-    if (meal?.image) {
-      const filePath = path.join(__dirname, '../../', meal.image);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    }
     await Meal.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'Meal deleted' });
   } catch (err) {
