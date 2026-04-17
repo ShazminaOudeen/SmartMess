@@ -1,5 +1,6 @@
 const mongoose  = require('mongoose');
 const nodemailer = require('nodemailer');
+const { ObjectId } = require('mongodb');
 const { logActivity } = require('./dashboardController');
 const getCollection = (name) => mongoose.connection.db.collection(name);
 
@@ -10,7 +11,6 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-  // ✅ Fixes "self-signed certificate" error on other machines
   tls: {
     rejectUnauthorized: false,
   },
@@ -100,10 +100,39 @@ const getComplaintStats = async (req, res) => {
 // ── GET /api/admin/complaints ─────────────────────────────────────────────────
 const getComplaints = async (req, res) => {
   try {
-    const complaints = await getCollection('complaints')
-      .find({})
-      .sort({ createdAt: -1 })
-      .toArray();
+    const complaints = await getCollection('complaints').aggregate([
+      { $sort: { createdAt: -1 } },
+
+      // ✅ Lookup canteen name using canteenId
+      {
+        $lookup: {
+          from:         'canteens',
+          localField:   'canteenId',
+          foreignField: '_id',
+          as:           'canteenData',
+        },
+      },
+
+      // ✅ Add canteenName field — falls back to '—' if not found
+      {
+        $addFields: {
+          canteenName: {
+            $ifNull: [
+              { $arrayElemAt: ['$canteenData.name', 0] },
+              { $ifNull: [
+                  { $arrayElemAt: ['$canteenData.canteenName', 0] },
+                  '—'
+                ]
+              },
+            ],
+          },
+        },
+      },
+
+      // ✅ Remove the raw canteenData array (we only need the name)
+      { $project: { canteenData: 0 } },
+    ]).toArray();
+
     res.json({ success: true, data: complaints });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

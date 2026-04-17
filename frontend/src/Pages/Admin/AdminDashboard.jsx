@@ -217,6 +217,7 @@ const AdminDashboard = () => {
               style={{
                 minHeight: 0,
                 overflowX: 'auto',
+                minHeight: 200,  
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
               }}
@@ -377,5 +378,6 @@ const AdminDashboard = () => {
     </div>
   );
 };
+
 
 export default AdminDashboard;

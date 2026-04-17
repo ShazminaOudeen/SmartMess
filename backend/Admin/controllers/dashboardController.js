@@ -53,9 +53,12 @@ const getOrdersByCanteen = async (req, res) => {
       .project({ canteenName: 1 }) 
       .toArray();
 
+      console.log('DEBUG canteens:', JSON.stringify(canteens, null, 2)); // ← add this
+console.log('DEBUG grouped:', JSON.stringify(grouped, null, 2));   // ← and this
+
     // Step 3: Build a lookup map id→name
     const canteenMap = {};
-    canteens.forEach(c => { canteenMap[c._id.toString()] = c.name; });
+    canteens.forEach(c => { canteenMap[c._id.toString()] = c.canteenName; });
 
     // Step 4: Merge
     const data = grouped.map(g => ({
@@ -100,5 +103,7 @@ const logActivity = async ({ type, description, performedBy = {}, meta = {} }) =
     console.error('ActivityLog write error:', err.message);
   }
 };
+
+
 
 module.exports = { getDashboardStats, getOrdersByCanteen, getActivityLogs, logActivity };
