@@ -133,10 +133,12 @@ export default function ReportIssuePage() {
                       {user?.canteenName || 'Loading...'}
                     </p>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-700/40 rounded-xl px-4 py-3">
-                    <p className="text-[10px] text-gray-400 mb-0.5">User ID</p>
-                    <p className="text-sm font-bold text-gray-800 dark:text-white truncate font-mono">{userId || 'Not logged in'}</p>
-                  </div>
+                 <div className="bg-gray-50 dark:bg-gray-700/40 rounded-xl px-4 py-3">
+       <p className="text-[10px] text-gray-400 mb-0.5">User ID</p>
+      <p className="text-sm font-bold text-gray-800 dark:text-white truncate font-mono">
+    {userId ? `Canteen-${userId.slice(-4)}` : 'Not logged in'}
+  </p>
+</div>
                 </div>
               </div>
 
