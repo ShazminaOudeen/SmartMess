@@ -140,7 +140,12 @@ export default function MealsPage() {
   const fileRef = useRef();
 
   const showToastMessage = (msg, type = 'success') => setToast({ msg, type });
-  const buildImgUrl = (p) => p ? `http://localhost:5000${p}` : null;
+  const buildImgUrl = (p) => {
+  if (!p) return null;
+  if (p.startsWith('data:') || p.startsWith('blob:') || p.startsWith('http')) return p;
+  const base = import.meta.env.VITE_API_URL || '';
+  return `${base}${p}`;
+};
 
   const fetchMeals = async () => {
     setLoading(true);
