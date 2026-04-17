@@ -52,6 +52,42 @@ export const AuthProvider = ({ children }) => {
         loadUser();
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+    const loadUser = async () => {
+  if (token) {
+    try {
+      const res = await api().get('/profile');
+      if (res.data.success) {
+        let userData = res.data.user;
+
+        // If canteen owner, also fetch canteen profile to get image + name
+        if (userData.role === 'canteen_owner' || userData.role === 'canteen') {
+          try {
+            const canteenRes = await fetch('/api/canteen/profile', {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const canteenJson = await canteenRes.json();
+            if (canteenJson.success) {
+              userData = {
+                ...userData,
+                canteenName:  canteenJson.data.canteenName,
+                profileImage: canteenJson.data.image,
+              };
+            }
+          } catch {
+            // canteen fetch failed, continue with auth user only
+          }
+        }
+
+        setUser(userData);
+      } else {
+        logout();
+      }
+    } catch {
+      logout();
+    }
+  }
+  setLoading(false);
+};
     const login = async (email, password, role) => {
         const res = await api().post('/login', { email, password, role });
         if (res.data.success) {
