@@ -7,17 +7,8 @@ const fs       = require('fs');
 const getCollection = (name) => mongoose.connection.db.collection(name);
 
 // ── Multer setup for canteen images ──────────────────────────────────────────
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = path.join(__dirname, '../../uploads/canteens');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `canteen_${req.user._id}_${Date.now()}${ext}`);
-  },
-});
+// ── Multer setup — memory storage (no disk, we save Base64 to MongoDB) ────────
+const storage = multer.memoryStorage(); // ← change this
 
 const fileFilter = (req, file, cb) => {
   const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -94,15 +85,9 @@ const updateCanteenProfile = async (req, res) => {
     };
 
     if (req.file) {
-      const existing = await getCollection('canteens').findOne({
-        owner: new mongoose.Types.ObjectId(req.user._id),
-      });
-      if (existing?.image && existing.image.startsWith('/uploads')) {
-        const oldPath = path.join(__dirname, '../../', existing.image);
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-      }
-      updateData.image = `/uploads/canteens/${req.file.filename}`;
-    }
+  const base64 = req.file.buffer.toString('base64');
+  updateData.image = `data:${req.file.mimetype};base64,${base64}`;
+}
 
     const result = await getCollection('canteens').findOneAndUpdate(
       { owner: new mongoose.Types.ObjectId(req.user._id) },
