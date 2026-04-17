@@ -113,10 +113,10 @@ const DetailModal = ({ complaint, onClose, onStatusChange, onEmail, statusLoadin
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   if (!complaint) return null;
 
+  // ✅ Resolve canteen name: explicit field first, fallback to submittedByName if submitter is a canteen
   const resolvedCanteenName =
-    (complaint.canteenName && complaint.canteenName !== '—' ? complaint.canteenName : null) ||
-    (complaint.canteen?.name ? complaint.canteen.name : null) ||
-    (complaint.submitterType === 'canteen' ? complaint.submittedByName : null);
+  (complaint.canteenName  && complaint.canteenName  !== '—' ? complaint.canteenName  : null) ||
+  (complaint.canteen?.name ? complaint.canteen.name : null);
 
   const STATUS_ACTIONS = [
     { key: 'pending',  label: 'Mark Pending',  icon: Clock,       cls: 'text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20' },
@@ -148,6 +148,7 @@ const DetailModal = ({ complaint, onClose, onStatusChange, onEmail, statusLoadin
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
 
+          {/* ✅ Canteen name — shown for both "about a canteen" and "submitted by canteen" */}
           {resolvedCanteenName && (
             <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800">
               <Store className="w-4 h-4 text-purple-500 flex-shrink-0" />
@@ -435,14 +436,11 @@ const ComplaintManagement = () => {
           ) : (
             <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
               {complaints.map(c => {
-                // ✅ Resolve canteen name with 3-tier fallback:
-                // 1. explicit canteenName field
-                // 2. populated canteen.name from DB
-                // 3. submittedByName when submitter is a canteen
+                // ✅ Resolve canteen name for table row: explicit field first,
+                // fallback to submittedByName if the submitter is a canteen
                 const resolvedCanteenName =
-                  (c.canteenName && c.canteenName !== '—' ? c.canteenName : null) ||
-                  (c.canteen?.name ? c.canteen.name : null) ||
-                  (c.submitterType === 'canteen' ? c.submittedByName : null);
+  (c.canteenName  && c.canteenName  !== '—' ? c.canteenName  : null) ||
+  (c.canteen?.name ? c.canteen.name : null);
 
                 return (
                   <div key={c._id} className="grid px-5 py-3 items-center hover:bg-gray-50 dark:hover:bg-gray-700/20 transition-colors gap-3"
@@ -470,7 +468,7 @@ const ComplaintManagement = () => {
                       </span>
                     </div>
 
-                    {/* ✅ Canteen Name — shows for "about a canteen", "submitted by canteen", or populated canteen ref */}
+                    {/* ✅ Canteen Name — shows for both "about a canteen" and "submitted by canteen" */}
                     <div style={{ gridColumn: 'span 2' }} className="min-w-0">
                       {resolvedCanteenName ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 truncate max-w-full">

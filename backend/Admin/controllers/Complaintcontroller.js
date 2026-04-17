@@ -114,22 +114,27 @@ const getComplaints = async (req, res) => {
       },
 
       // ✅ Add canteenName field — falls back to '—' if not found
-      {
-        $addFields: {
-          canteenName: {
-            $ifNull: [
-              { $arrayElemAt: ['$canteenData.name', 0] },
-              { $ifNull: [
-                  { $arrayElemAt: ['$canteenData.canteenName', 0] },
-                  '—'
-                ]
-              },
-            ],
-          },
+      // In getComplaints aggregation — fix the $addFields stage:
+{
+  $addFields: {
+    canteenName: {
+      $ifNull: [
+        { $arrayElemAt: ['$canteenData.name', 0] },
+        { $ifNull: [
+            { $arrayElemAt: ['$canteenData.canteenName', 0] },
+            { $ifNull: [
+                '$canteenName',   
+                '—'
+              ]
+            }
+          ]
         },
-      },
+      ],
+    },
+  },
+},
 
-      // ✅ Remove the raw canteenData array (we only need the name)
+
       { $project: { canteenData: 0 } },
     ]).toArray();
 
