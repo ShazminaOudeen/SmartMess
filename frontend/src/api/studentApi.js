@@ -1,3 +1,4 @@
+//frontend/src/api/studentApi.js
 const BASE_URL = '/api/student';
 
 export const canteenAPI = {

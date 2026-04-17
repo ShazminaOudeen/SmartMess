@@ -1,3 +1,4 @@
+//frontend/src/Pages/canteen/ReviewsPage.jsx
 import { useState, useEffect } from 'react';
 import {
   Star, MessageSquare, Send, ChevronDown, Search,

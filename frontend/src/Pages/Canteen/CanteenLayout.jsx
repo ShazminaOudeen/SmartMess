@@ -11,7 +11,8 @@ import ReviewsPage from './ReviewsPage';
 import ReportIssuePage from './ReportIssuePage';
 import CanteenDashboard from './CanteenDashboard';
 import ChatBot from "../../components/ChatBot";
-
+import { useAuth } from '../../context/AuthContext';
+import { Navigate } from 'react-router-dom';
 
 /*function Placeholder({ title, emoji }) {
   return (
@@ -22,8 +23,10 @@ import ChatBot from "../../components/ChatBot";
     </div>
   );
 }*/
-
 export default function CanteenLayout() {
+  const { token } = useAuth();
+  if (!token) return <Navigate to="/login/canteen" replace />;
+
   return (
     <div className="flex h-screen overflow-hidden">
       <CanteenSidebar />

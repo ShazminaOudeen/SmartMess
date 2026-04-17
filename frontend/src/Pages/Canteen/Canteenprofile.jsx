@@ -1,3 +1,4 @@
+//frontend/src/pages/Canteen/CanteenProfile.jsx
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';

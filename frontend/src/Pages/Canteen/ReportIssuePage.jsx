@@ -1,3 +1,4 @@
+
 import { useState, useRef } from 'react';
 import {
   Bug, Zap, Lightbulb, HelpCircle, AlertTriangle,
