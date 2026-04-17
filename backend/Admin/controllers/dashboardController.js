@@ -53,8 +53,6 @@ const getOrdersByCanteen = async (req, res) => {
       .project({ canteenName: 1 }) 
       .toArray();
 
-      console.log('DEBUG canteens:', JSON.stringify(canteens, null, 2)); // ← add this
-console.log('DEBUG grouped:', JSON.stringify(grouped, null, 2));   // ← and this
 
     // Step 3: Build a lookup map id→name
     const canteenMap = {};

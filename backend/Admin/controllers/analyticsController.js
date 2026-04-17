@@ -46,12 +46,19 @@ const getCanteenAnalytics = async (req, res) => {
       };
     }));
 
-    enriched.sort((a, b) => b.monthlyRevenue - a.monthlyRevenue);
+    enriched.sort((a, b) => {
+  if (b.monthlyRevenue !== a.monthlyRevenue) return b.monthlyRevenue - a.monthlyRevenue;
+  return b.totalRevenue - a.totalRevenue; // tiebreaker
+});
 
-    const totalRevenue = enriched.reduce((s, c) => s + c.monthlyRevenue, 0);
-    const totalOrders  = enriched.reduce((s, c) => s + c.monthlyOrders,  0);
-    const topCanteen   = enriched[0]?.name || '—';
+const totalRevenue = enriched.reduce((s, c) => s + c.monthlyRevenue, 0);
+const totalOrders  = enriched.reduce((s, c) => s + c.monthlyOrders,  0);
 
+// pick topCanteen: if any monthly orders exist use monthly, else fall back to total
+const hasMonthlyActivity = enriched.some(c => c.monthlyOrders > 0);
+const topCanteen = hasMonthlyActivity
+  ? enriched.reduce((best, c) => c.monthlyOrders > best.monthlyOrders ? c : best, enriched[0])?.name || '—'
+  : enriched.reduce((best, c) => c.totalOrders  > best.totalOrders  ? c : best, enriched[0])?.name || '—';
     res.json({
       success: true,
       data: enriched,

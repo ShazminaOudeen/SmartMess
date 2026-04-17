@@ -273,17 +273,18 @@ const Analytics = () => {
   };
 
   // sorted display (search results)
-  const sorted = [...canteens].sort((a, b) => {
-    const va = a[sortCol] ?? 0, vb = b[sortCol] ?? 0;
-    return sortDir === 'asc' ? va - vb : vb - va;
-  });
+  const sortFn = (a, b) => {
+  const va = a[sortCol] ?? 0, vb = b[sortCol] ?? 0;
+  if (va !== vb) return sortDir === 'asc' ? va - vb : vb - va;
+  // fallback: if monthly values are equal, rank by totalRevenue desc
+  if (sortCol === 'monthlyRevenue' || sortCol === 'monthlyOrders') {
+    return (b.totalRevenue ?? 0) - (a.totalRevenue ?? 0);
+  }
+  return 0;
+};
 
-  // for exports — always ALL canteens sorted, not just search filtered
-  const allSorted = [...allCanteens].sort((a, b) => {
-    const va = a[sortCol] ?? 0, vb = b[sortCol] ?? 0;
-    return sortDir === 'asc' ? va - vb : vb - va;
-  });
-
+const sorted    = [...canteens].sort(sortFn);
+const allSorted = [...allCanteens].sort(sortFn);
   const canteenNames = [...new Set(chartData.flatMap(d => Object.keys(d).filter(k => k !== 'month')))];
 
   const handleExportPDF = async () => {
