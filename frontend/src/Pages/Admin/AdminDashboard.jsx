@@ -157,7 +157,11 @@ const AdminDashboard = () => {
       />
 
       {/* ── Scrollable content ── */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+      <div
+  className="flex-1 overflow-y-auto px-5 py-4 space-y-4"
+  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+>
+  <style>{`/* hide main page scrollbar */ .flex-1::-webkit-scrollbar { display: none; }`}</style>
 
         {/* Stat Cards */}
         <div className="grid grid-cols-3 gap-4">
@@ -215,7 +219,6 @@ const AdminDashboard = () => {
               ref={chartScrollRef}
               className="flex-1 overflow-y-hidden chart-scroll"
               style={{
-                minHeight: 0,
                 overflowX: 'auto',
                 minHeight: 200,  
                 scrollbarWidth: 'none',
