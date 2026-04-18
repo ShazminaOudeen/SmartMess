@@ -12,7 +12,12 @@ const fmtDate  = (d) => d ? new Date(d).toLocaleDateString('en-US', { day:'numer
 const fmtTime  = (d) => d ? new Date(d).toLocaleString('en-US', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '—';
 const getId    = (id) => id ? String(id).slice(-6).toUpperCase() : '??????';
 
-const imgUrl = (path) => path ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${path}` : null;
+const imgUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith('data:') || path.startsWith('http') || path.startsWith('blob:')) return path;
+  const base = import.meta.env.VITE_API_URL || '';
+  return `${base}${path}`;
+};
 
 const STATUS = {
   pending:   { label: 'Pending',   color: 'bg-yellow-50 text-yellow-600 ring-1 ring-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:ring-yellow-800',   dot: 'bg-yellow-500'  },

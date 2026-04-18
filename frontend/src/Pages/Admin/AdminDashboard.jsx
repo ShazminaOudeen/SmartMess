@@ -254,11 +254,13 @@ const AdminDashboard = () => {
                         tickLine={false}
                         interval={0}
                       />
-                      <YAxis
+                     <YAxis
                         allowDecimals={false}
                         tick={{ fontSize: 11, fill: theme === 'dark' ? '#6b7280' : '#9ca3af' }}
                         axisLine={false}
                         tickLine={false}
+                        tickFormatter={(value) => value % 2 === 0 ? value : ''}
+                         interval={0}
                       />
                       <Tooltip
                         cursor={{ fill: theme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)', radius: 6 }}
