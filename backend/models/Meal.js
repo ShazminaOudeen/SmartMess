@@ -1,4 +1,4 @@
-//backend/Canteen/models/Meal.js
+// backend/Canteen/models/Meal.js
 
 const mongoose = require('mongoose');
 
@@ -11,7 +11,7 @@ const mealSchema = new mongoose.Schema({
   canteen:     { type: mongoose.Schema.Types.ObjectId, ref: 'Canteen', required: true },
   name:        { type: String, required: true },
   description: { type: String },
-  category:    { 
+  category:    {
     type: String,
     enum: ['Rice', 'Snacks', 'Desserts', 'Drinks', 'Breakfast', 'Other'],
     default: 'Other'
@@ -21,6 +21,12 @@ const mealSchema = new mongoose.Schema({
     Small:  { type: sizeSchema, default: () => ({}) },
     Medium: { type: sizeSchema, default: () => ({}) },
     Large:  { type: sizeSchema, default: () => ({}) },
+  },
+  // ← THIS WAS MISSING — Mongoose was silently dropping defaultSize on every save
+  defaultSize: {
+    type:    String,
+    enum:    ['Small', 'Medium', 'Large'],
+    default: 'Medium',
   },
   image:       { type: String },
   isAvailable: { type: Boolean, default: true },

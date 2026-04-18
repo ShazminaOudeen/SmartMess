@@ -1,8 +1,6 @@
-//backend/Canteen/controllers/mealController.js
+// backend/Canteen/controllers/mealController.js
 const mongoose = require('mongoose');
 const multer   = require('multer');
-const path     = require('path');
-const fs       = require('fs');
 const Meal     = require('../../models/Meal');
 
 const getCanteenId = async (userId) => {
@@ -12,18 +10,76 @@ const getCanteenId = async (userId) => {
   return canteen?._id || null;
 };
 
-const storage = multer.memoryStorage(); // ← change to memory
+const storage    = multer.memoryStorage();
 const fileFilter = (req, file, cb) => {
-  ['image/jpeg','image/jpg','image/png','image/webp'].includes(file.mimetype)
-    ? cb(null, true) : cb(new Error('Only JPG, PNG, WEBP allowed'));
+  ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.mimetype)
+    ? cb(null, true)
+    : cb(new Error('Only JPG, PNG, WEBP allowed'));
 };
 const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+const parseSizes = (rawSizes) => {
+  // rawSizes arrives as a JSON string from FormData fd.append('sizes', JSON.stringify(...))
+  // After JSON.parse, s.enabled is a real boolean — but guard against string "true"/"false"
+  // in case anything ever sends it as a plain form field instead.
+  let parsed = {};
+  try { parsed = typeof rawSizes === 'string' ? JSON.parse(rawSizes) : rawSizes; } catch { parsed = {}; }
+
+  const result = {};
+  ['Small', 'Medium', 'Large'].forEach((size) => {
+    const s = parsed[size] || {};
+    // Safely coerce: real boolean true → true, real boolean false → false,
+    // string "true" → true, string "false" → false, undefined/null → false
+    const enabled = s.enabled === true || s.enabled === 'true';
+    const price   = parseFloat(s.price);
+    result[size]  = { enabled, price: isNaN(price) ? 0 : price };
+  });
+  return result;
+};
+
+const validateMealBody = (body) => {
+  const { name, description, category, basePrice, sizes, defaultSize } = body;
+  if (!name || !name.trim())
+    return 'Meal name is required';
+  if (!/^[a-zA-Z\s]+$/.test(name.trim()))
+    return 'Meal name must contain letters only (no numbers or symbols)';
+  if (!category)
+    return 'Category is required';
+  if (basePrice === undefined || basePrice === null || basePrice === '')
+    return 'Base price is required';
+  const p = parseFloat(basePrice);
+  if (isNaN(p) || p < 0)
+    return 'Enter a valid base price';
+  if (description?.trim() && !/^[a-zA-Z\s]+$/.test(description.trim()))
+    return 'Description must contain letters only (no numbers or symbols)';
+
+  // validate that at least one size is enabled
+  let parsedSizes = {};
+  try { parsedSizes = typeof sizes === 'string' ? JSON.parse(sizes) : (sizes || {}); } catch { parsedSizes = {}; }
+  // Use same safe coercion: true or "true" → enabled
+  const isSizeEnabled = (s) => s?.enabled === true || s?.enabled === 'true';
+  const anyEnabled = ['Small', 'Medium', 'Large'].some(s => isSizeEnabled(parsedSizes[s]));
+  if (!anyEnabled)
+    return 'At least one size must be enabled';
+
+  // validate defaultSize is one of the enabled sizes
+  const validSizes = ['Small', 'Medium', 'Large'];
+  if (!validSizes.includes(defaultSize))
+    return 'Invalid default size';
+  if (!isSizeEnabled(parsedSizes[defaultSize]))
+    return 'Default size must be an enabled size';
+
+  return null;
+};
 
 // ── GET /api/canteen/meals ────────────────────────────────────────────────────
 const getMeals = async (req, res) => {
   try {
     const canteenId = await getCanteenId(req.user._id);
-    if (!canteenId) return res.status(404).json({ success: false, message: 'Canteen not found' });
+    if (!canteenId)
+      return res.status(404).json({ success: false, message: 'Canteen not found' });
+
     const meals = await Meal.find({ canteen: canteenId.toString() }).sort({ createdAt: -1 });
     res.json({ success: true, data: meals });
   } catch (err) {
@@ -35,37 +91,17 @@ const getMeals = async (req, res) => {
 const addMeal = async (req, res) => {
   try {
     const canteenId = await getCanteenId(req.user._id);
-    if (!canteenId) return res.status(404).json({ success: false, message: 'Canteen not found' });
+    if (!canteenId)
+      return res.status(404).json({ success: false, message: 'Canteen not found' });
+
+    const error = validateMealBody(req.body);
+    if (error) return res.status(400).json({ success: false, message: error });
 
     const { name, description, category, basePrice, isAvailable, sizes, defaultSize } = req.body;
-
-    // ── Server-side validation ──────────────────────────────────────────────
-
-    if (!name || !name.trim()) {
-      return res.status(400).json({ success: false, message: 'Meal name is required' });
-    }
-    if (!/^[a-zA-Z\s]+$/.test(name.trim())) {
-      return res.status(400).json({ success: false, message: 'Meal name must contain letters only (no numbers or symbols)' });
-    }
-
-    if (!category) {
-      return res.status(400).json({ success: false, message: 'Category is required' });
-    }
-
-    if (!basePrice && basePrice !== 0) {
-      return res.status(400).json({ success: false, message: 'Base price is required' });
-    }
     const parsedPrice = parseFloat(basePrice);
-    if (isNaN(parsedPrice) || parsedPrice < 0) {
-      return res.status(400).json({ success: false, message: 'Enter a valid base price' });
-    }
+    const parsedSizes = parseSizes(sizes);
 
-    if (description?.trim() && !/^[a-zA-Z\s]+$/.test(description.trim())) {
-      return res.status(400).json({ success: false, message: 'Description must contain letters only (no numbers or symbols)' });
-    }
-
-    // ────────────────────────────────────────────────────────────────────────
-
+    // FIX: trust the client's defaultSize — validation above already confirmed it's valid
     const meal = await Meal.create({
       canteen:     canteenId.toString(),
       name:        name.trim(),
@@ -73,14 +109,16 @@ const addMeal = async (req, res) => {
       category:    category || 'Other',
       basePrice:   parsedPrice,
       isAvailable: isAvailable === 'true' || isAvailable === true,
-      defaultSize: defaultSize || 'Medium',
-      sizes:       sizes ? JSON.parse(sizes) : {},
-      image: req.file ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}` : null,
+      defaultSize: defaultSize,
+      sizes:       parsedSizes,
+      image: req.file
+        ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`
+        : null,
     });
 
     res.json({ success: true, message: 'Meal added', data: meal });
   } catch (err) {
-    console.log('addMeal ERROR:', err.message);
+    console.error('addMeal ERROR:', err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -88,50 +126,37 @@ const addMeal = async (req, res) => {
 // ── PUT /api/canteen/meals/:id ────────────────────────────────────────────────
 const updateMeal = async (req, res) => {
   try {
+    const error = validateMealBody(req.body);
+    if (error) return res.status(400).json({ success: false, message: error });
+
     const { name, description, category, basePrice, isAvailable, sizes, defaultSize } = req.body;
-
-    // ── Server-side validation ──────────────────────────────────────────────
-
-    if (!name || !name.trim()) {
-      return res.status(400).json({ success: false, message: 'Meal name is required' });
-    }
-    if (!/^[a-zA-Z\s]+$/.test(name.trim())) {
-      return res.status(400).json({ success: false, message: 'Meal name must contain letters only (no numbers or symbols)' });
-    }
-
-    if (!category) {
-      return res.status(400).json({ success: false, message: 'Category is required' });
-    }
-
-    if (!basePrice && basePrice !== 0) {
-      return res.status(400).json({ success: false, message: 'Base price is required' });
-    }
     const parsedPrice = parseFloat(basePrice);
-    if (isNaN(parsedPrice) || parsedPrice < 0) {
-      return res.status(400).json({ success: false, message: 'Enter a valid base price' });
-    }
+    const parsedSizes = parseSizes(sizes);
 
-    if (description?.trim() && !/^[a-zA-Z\s]+$/.test(description.trim())) {
-      return res.status(400).json({ success: false, message: 'Description must contain letters only (no numbers or symbols)' });
-    }
-
-    // ────────────────────────────────────────────────────────────────────────
-
+    // FIX: trust the client's defaultSize — validation above already confirmed it's valid
     const updateData = {
       name:        name.trim(),
       description: description?.trim() || '',
       category:    category || 'Other',
       basePrice:   parsedPrice,
       isAvailable: isAvailable === 'true' || isAvailable === true,
-      defaultSize: defaultSize || 'Medium',
-      sizes:       sizes ? JSON.parse(sizes) : {},
+      defaultSize: defaultSize,
+      sizes:       parsedSizes,
     };
-   if (req.file) updateData.image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
 
-    const meal = await Meal.findByIdAndUpdate(req.params.id, { $set: updateData }, { new: true });
+    if (req.file)
+      updateData.image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+
+    const meal = await Meal.findByIdAndUpdate(
+      req.params.id,
+      { $set: updateData },
+      { new: true }
+    );
     if (!meal) return res.status(404).json({ success: false, message: 'Meal not found' });
+
     res.json({ success: true, message: 'Meal updated', data: meal });
   } catch (err) {
+    console.error('updateMeal ERROR:', err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 };
