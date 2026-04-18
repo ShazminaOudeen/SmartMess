@@ -135,11 +135,37 @@ const StatusBadge = ({ status }) => {
 const DocModal = ({ doc, onClose }) => {
   if (!doc) return null;
 
-  const fullUrl = doc.url?.startsWith('http')
+  const src = doc.url?.startsWith('data:') || doc.url?.startsWith('http')
     ? doc.url
-    : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${doc.url}`;
+    : `${import.meta.env.VITE_API_URL || ''}${doc.url}`;
 
-  const isPdf = fullUrl?.toLowerCase().includes('.pdf') || doc.type === 'application/pdf';
+  const isPdf = doc.url?.startsWith('data:application/pdf') ||
+                doc.type === 'application/pdf' ||
+                doc.url?.toLowerCase().includes('.pdf');
+
+  const openInTab = () => {
+    if (src.startsWith('data:')) {
+      const byteString = atob(src.split(',')[1]);
+      const mimeType   = src.split(',')[0].split(':')[1].split(';')[0];
+      const byteArray  = new Uint8Array(byteString.length);
+      for (let i = 0; i < byteString.length; i++) byteArray[i] = byteString.charCodeAt(i);
+      const blobUrl = URL.createObjectURL(new Blob([byteArray], { type: mimeType }));
+      window.open(blobUrl, '_blank');
+    } else {
+      window.open(src, '_blank');
+    }
+  };
+
+  const download = () => {
+    if (src.startsWith('data:')) {
+      const a = document.createElement('a');
+      a.href = src;
+      a.download = doc.name || 'document';
+      a.click();
+    } else {
+      window.open(src, '_blank');
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -151,16 +177,14 @@ const DocModal = ({ doc, onClose }) => {
             <span className="text-sm font-bold text-gray-800 dark:text-white">{doc.name || 'Document'}</span>
           </div>
           <div className="flex items-center gap-2">
-            {isPdf && (
-              <a href={fullUrl} target="_blank" rel="noreferrer"
-                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors">
-                <Eye className="w-3.5 h-3.5" /> Open in Tab
-              </a>
-            )}
-            <a href={fullUrl} download target="_blank" rel="noreferrer"
+            <button onClick={openInTab}
+              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors">
+              <Eye className="w-3.5 h-3.5" /> Open in Tab
+            </button>
+            <button onClick={download}
               className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 hover:bg-primary-100 transition-colors">
               <Download className="w-3.5 h-3.5" /> Download
-            </a>
+            </button>
             <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 transition-colors">
               <X className="w-4 h-4" />
             </button>
@@ -168,49 +192,20 @@ const DocModal = ({ doc, onClose }) => {
         </div>
         <div className="flex-1 overflow-auto" style={{ scrollbarWidth: 'none' }}>
           {isPdf ? (
-            // ✅ Uses browser's built-in PDF renderer — works with localhost URLs
-            <object
-              data={fullUrl}
-              type="application/pdf"
+            <iframe
+              src={src}
               className="w-full"
-              style={{ height: '70vh' }}
-            >
-              {/* Fallback UI if browser can't render the PDF inline */}
-              <div className="flex flex-col items-center justify-center gap-4 text-gray-400 dark:text-gray-500 p-10" style={{ height: '70vh' }}>
-                <FileText className="w-12 h-12" />
-                <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">
-                  Unable to preview this PDF in your browser.
-                </p>
-                <div className="flex gap-3">
-                  <a
-                    href={fullUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white transition-colors"
-                  >
-                    <Eye className="w-3.5 h-3.5" /> Open in New Tab
-                  </a>
-                  <a
-                    href={fullUrl}
-                    download
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5" /> Download
-                  </a>
-                </div>
-              </div>
-            </object>
+              style={{ height: '70vh', border: 'none' }}
+              title="Document Preview"
+            />
           ) : (
-            <img src={fullUrl} alt={doc.name} className="w-full h-auto object-contain p-4" />
+            <img src={src} alt={doc.name} className="w-full h-auto object-contain p-4" />
           )}
         </div>
       </div>
     </div>
   );
 };
-
 const DetailModal = ({ canteen, onClose, onApprove, onReject, actionLoading }) => {
   const [activeDoc, setActiveDoc] = useState(null);
   if (!canteen) return null;

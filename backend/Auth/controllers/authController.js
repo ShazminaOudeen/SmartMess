@@ -1,29 +1,16 @@
 const jwt = require('jsonwebtoken');
-const path = require('path');
-const fs = require('fs');
 const multer = require('multer');
 const User = require('../models/User');
 
 // ── Multer setup for registration documents ───────────────────────────────────
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const dir = 'uploads/documents';
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-        cb(null, dir);
-    },
-    filename: (req, file, cb) => {
-        cb(null, `doc-${Date.now()}${path.extname(file.originalname)}`);
-    },
-});
+const storage = multer.memoryStorage(); // ← memory, not disk
 const uploadDoc = multer({
-    storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-    fileFilter: (req, file, cb) => {
-        const allowed = ['.pdf', '.jpg', '.jpeg', '.png'];
-        const ext = path.extname(file.originalname).toLowerCase();
-        if (allowed.includes(ext)) cb(null, true);
-        else cb(new Error('Only PDF, JPG, and PNG files are allowed'));
-    },
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    allowed.includes(file.mimetype) ? cb(null, true) : cb(new Error('Only PDF, JPG, and PNG files are allowed'));
+  },
 });
 
 // Generate JWT token
@@ -94,7 +81,7 @@ const register = async (req, res) => {
             userData.canteenName = canteenName;
             userData.location = location || '';
             userData.licenseNumber = licenseNumber || '';
-            userData.registrationDocument = '/' + req.file.path.replace(/\\/g, '/');
+            userData.registrationDocument = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
         }
 
         const user = await User.create(userData);
