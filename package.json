@@ -16,7 +16,7 @@
   },
   "homepage": "https://github.com/ShazminaOudeen/SmartMess#readme",
   "devDependencies": {
-    "@playwright/test": "^1.58.2",
+    "@playwright/test": "^1.59.1",
     "@types/node": "^25.3.3"
   }
 }

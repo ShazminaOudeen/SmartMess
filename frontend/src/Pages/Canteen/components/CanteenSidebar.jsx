@@ -1,3 +1,4 @@
+//frontend/src/pages/Canteen/components/CanteenSidebar.jsx
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from '../../../context/AuthContext';

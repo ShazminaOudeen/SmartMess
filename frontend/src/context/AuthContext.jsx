@@ -1,3 +1,4 @@
+//frontend/src/context/AuthContext.jsx
 import { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import axios from 'axios';
 

@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+//App.jsx
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import HomePage from "./Pages/Home/homepage";
 import LoginPortal from "./Pages/Home/LoginPortal";
 
@@ -36,7 +37,6 @@ function App() {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<HomePage />} />
-        <Route path="/canteens" element={<Navigate to="/student/canteens" replace />} />
         <Route path="/login" element={<LoginPortal />} />
         <Route path="/login/:role" element={<LoginPage />} />
         <Route path="/register/student" element={<StudentRegister />} />

@@ -80,10 +80,34 @@ const getOrders = async (req, res) => {
     if (!canteenId) return res.status(404).json({ success: false, message: 'Canteen not found' });
 
     const orders = await getCollection()
-      .find({ canteen: canteenId })   // ✅ FIXED: was { canteenId }
+      .find({ canteen: canteenId })
       .sort({ createdAt: -1 })
       .toArray();
-    res.json({ success: true, data: orders });
+
+    // ── Populate student name and email from users collection ─────────────────
+    const usersCollection = mongoose.connection.db.collection('users');
+
+    const populatedOrders = await Promise.all(
+      orders.map(async (order) => {
+        if (!order.student) return { ...order, studentName: 'Unknown', studentEmail: '' };
+        try {
+          const student = await usersCollection.findOne(
+            { _id: new mongoose.Types.ObjectId(order.student) },
+            { projection: { name: 1, email: 1, phone: 1 } }
+          );
+          return {
+            ...order,
+            studentName:  student?.name  || 'Unknown',
+            studentEmail: student?.email || '',
+            studentPhone: student?.phone || '',
+          };
+        } catch {
+          return { ...order, studentName: 'Unknown', studentEmail: '' };
+        }
+      })
+    );
+
+    res.json({ success: true, data: populatedOrders });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
