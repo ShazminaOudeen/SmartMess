@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Complaint = require('../Admin/models/Complaint');
+const { logActivity } = require('../Admin/controllers/dashboardController');
 const multer = require('multer');
 const mongoose = require('mongoose');
 
@@ -36,7 +37,13 @@ router.post('/', upload.single('attachment'), async (req, res) => {
     });
 
     await complaint.save();
-    res.status(201).json({ success: true, message: 'Complaint submitted successfully!', data: complaint });
+    
+await logActivity({
+  type:        'COMPLAINT_SUBMITTED',
+  description: `Student "${submittedByName || 'Unknown'}" submitted a complaint: ${category}`,
+  performedBy: { userId: submitterId, name: submittedByName || 'Student', role: 'Student' },
+  meta:        { category, canteenId },
+});
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

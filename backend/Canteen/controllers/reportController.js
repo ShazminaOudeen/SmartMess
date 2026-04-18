@@ -1,6 +1,7 @@
 //backend/Canteen/controllers/oreportController.js
 
 const Complaint = require('../../Admin/models/Complaint');
+const { logActivity } = require('../../Admin/controllers/dashboardController');
 const multer    = require('multer');
 
 // Multer setup — memory storage, saves as Base64 to MongoDB
@@ -24,6 +25,12 @@ const submitReport = async (req, res) => {
     if (!category || !description?.trim()) {
       return res.status(400).json({ success: false, message: 'Category and description are required' });
     }
+    await logActivity({
+  type:        'COMPLAINT_SUBMITTED',
+  description: `Canteen "${canteenName || 'Unknown'}" submitted a report: ${category}`,
+  performedBy: { userId: submitterId, name: submittedByName || 'Canteen User', role: 'Canteen' },
+  meta:        { category, canteenName },
+});
  
     const complaint = await Complaint.create({
        submittedByName:  submittedByName || 'Canteen User', 
