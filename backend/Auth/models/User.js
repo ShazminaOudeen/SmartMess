@@ -68,7 +68,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
-   
+   isBlocked: {
+  type: Boolean,
+  default: false,
+},
 status: {
   type: String,
   enum: ['pending', 'approved', 'rejected'],

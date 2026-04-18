@@ -168,7 +168,7 @@ const login = async (req, res) => {
             });
         }
 
-        if (!user.isBlocked) {
+        if (user.isBlocked) {
             return res.status(403).json({
                 success: false,
                 message: 'Your account has been deactivated. Contact admin.',
