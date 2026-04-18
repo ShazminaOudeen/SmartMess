@@ -376,7 +376,7 @@ const CanteenVisibility = () => {
                   {/* Canteen name + owner */}
                   <div className="col-span-3 flex items-center gap-3 min-w-0">
                     {c.image
-                      ? <img src={`http://localhost:5000${c.image}`} alt={c.canteenName || c.name} className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+                      ? <img src={c.image} alt={c.canteenName || c.name} className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
                       : <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center flex-shrink-0">
                           <Store className="w-4 h-4 text-white" />
                         </div>
