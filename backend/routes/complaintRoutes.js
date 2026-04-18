@@ -5,7 +5,7 @@ const { logActivity } = require('../Admin/controllers/dashboardController');
 const multer = require('multer');
 const mongoose = require('mongoose');
 
-const storage = multer.memoryStorage(); // ← memory, not disk
+const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 router.post('/', upload.single('attachment'), async (req, res) => {
@@ -14,7 +14,7 @@ router.post('/', upload.single('attachment'), async (req, res) => {
       submittedByName,
       submittedByEmail,
       submitterId,
-      canteenId,       // ✅ received from frontend
+      canteenId,
       category,
       description,
     } = req.body;
@@ -22,28 +22,35 @@ router.post('/', upload.single('attachment'), async (req, res) => {
     const complaint = new Complaint({
       submittedByName,
       submittedByEmail: submittedByEmail || '',
-      submitterId:      submitterId  || undefined,
-      // ✅ save canteenId so admin can count complaints per canteen
+      submitterId:      submitterId || undefined,
       canteenId:        canteenId && mongoose.Types.ObjectId.isValid(canteenId)
                           ? new mongoose.Types.ObjectId(canteenId)
                           : null,
       submitterType:    'user',
       category,
       description,
-      attachment: req.file
-                    ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`
-                    : undefined,
-      status: 'pending',
+      status:           'pending',
     });
 
     await complaint.save();
-    
-await logActivity({
-  type:        'COMPLAINT_SUBMITTED',
-  description: `Student "${submittedByName || 'Unknown'}" submitted a complaint: ${category}`,
-  performedBy: { userId: submitterId, name: submittedByName || 'Student', role: 'Student' },
-  meta:        { category, canteenId },
-});
+
+    // ✅ Respond immediately
+    res.status(201).json({ success: true, message: 'Complaint submitted successfully!', data: complaint });
+
+    // ✅ Save image in background
+    if (req.file) {
+      const base64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+      complaint.updateOne({ attachment: base64 }).catch(() => {});
+    }
+
+    // ✅ Log in background
+    logActivity({
+      type:        'COMPLAINT_SUBMITTED',
+      description: `Student "${submittedByName || 'Unknown'}" submitted a complaint: ${category}`,
+      performedBy: { userId: submitterId, name: submittedByName || 'Student', role: 'Student' },
+      meta:        { category, canteenId },
+    }).catch(() => {});
+
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

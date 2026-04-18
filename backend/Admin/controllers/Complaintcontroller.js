@@ -4,19 +4,15 @@ const { ObjectId } = require('mongodb');
 const { logActivity } = require('./dashboardController');
 const getCollection = (name) => mongoose.connection.db.collection(name);
 
-// ── Nodemailer transporter ────────────────────────────────────────────────────
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-  tls: {
-    rejectUnauthorized: false,
-  },
+  tls: { rejectUnauthorized: false },
 });
 
-// ── Auto email helper ─────────────────────────────────────────────────────────
 const sendAutoEmail = async (to, subject, html) => {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.warn('⚠️  Email not configured — set EMAIL_USER and EMAIL_PASS in .env');
@@ -25,9 +21,7 @@ const sendAutoEmail = async (to, subject, html) => {
   try {
     await transporter.sendMail({
       from: process.env.EMAIL_FROM || `SmartMess Admin <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      html,
+      to, subject, html,
     });
     console.log(`✅ Email sent to ${to}`);
   } catch (err) {
@@ -35,7 +29,6 @@ const sendAutoEmail = async (to, subject, html) => {
   }
 };
 
-// ── Status change email templates ─────────────────────────────────────────────
 const statusEmailTemplates = {
   inreview: (name, id) => ({
     subject: `Your Complaint #${id} is Now Under Review — SmartMess`,
@@ -100,45 +93,40 @@ const getComplaintStats = async (req, res) => {
 // ── GET /api/admin/complaints ─────────────────────────────────────────────────
 const getComplaints = async (req, res) => {
   try {
-    const complaints = await getCollection('complaints').aggregate([
-      { $sort: { createdAt: -1 } },
+    const page  = parseInt(req.query.page)  || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip  = (page - 1) * limit;
 
-      // ✅ Lookup canteen name using canteenId
-      {
-        $lookup: {
-          from:         'canteens',
-          localField:   'canteenId',
-          foreignField: '_id',
-          as:           'canteenData',
+    const [complaints, total] = await Promise.all([
+      getCollection('complaints').aggregate([
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $lookup: {
+            from: 'canteens', localField: 'canteenId', foreignField: '_id', as: 'canteenData',
+          },
         },
-      },
-
-      // ✅ Add canteenName field — falls back to '—' if not found
-      // In getComplaints aggregation — fix the $addFields stage:
-{
-  $addFields: {
-    canteenName: {
-      $ifNull: [
-        { $arrayElemAt: ['$canteenData.name', 0] },
-        { $ifNull: [
-            { $arrayElemAt: ['$canteenData.canteenName', 0] },
-            { $ifNull: [
-                '$canteenName',   
-                '—'
-              ]
-            }
-          ]
+        {
+          $addFields: {
+            canteenName: {
+              $ifNull: [
+                { $arrayElemAt: ['$canteenData.name', 0] },
+                { $ifNull: [
+                    { $arrayElemAt: ['$canteenData.canteenName', 0] },
+                    { $ifNull: ['$canteenName', '—'] },
+                  ]
+                },
+              ],
+            },
+          },
         },
-      ],
-    },
-  },
-},
+        { $project: { canteenData: 0 } },
+      ]).toArray(),
+      getCollection('complaints').countDocuments({}),
+    ]);
 
-
-      { $project: { canteenData: 0 } },
-    ]).toArray();
-
-    res.json({ success: true, data: complaints });
+    res.json({ success: true, data: complaints, total, page, limit });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -162,7 +150,7 @@ const updateComplaintStatus = async (req, res) => {
     );
     if (!result) return res.status(404).json({ success: false, message: 'Complaint not found' });
 
-    await logActivity({
+    logActivity({
       type: 'COMPLAINT_RESOLVED',
       description: `Complaint #${String(id).slice(-6).toUpperCase()} marked as ${status}`,
       performedBy: { userId: req.user?._id, name: req.user?.name || 'Admin', role: 'Admin' },
@@ -174,7 +162,7 @@ const updateComplaintStatus = async (req, res) => {
     const template = statusEmailTemplates[status];
     if (template && email) {
       const { subject, html } = template(name, shortId);
-      await sendAutoEmail(email, subject, html);
+      sendAutoEmail(email, subject, html).catch(() => {});
     }
 
     res.json({ success: true, message: `Status updated to ${status}`, data: result });
@@ -210,13 +198,11 @@ const sendComplaintEmail = async (req, res) => {
 
     await transporter.sendMail({
       from: process.env.EMAIL_FROM || `SmartMess Admin <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      html,
+      to, subject, html,
     });
 
     if (complaintId) {
-      await getCollection('complaints').updateOne(
+      getCollection('complaints').updateOne(
         { _id: new mongoose.Types.ObjectId(complaintId) },
         { $push: { emailHistory: { to, subject, sentAt: new Date(), sentBy: req.user?.name || 'Admin' } } }
       ).catch(() => {});
