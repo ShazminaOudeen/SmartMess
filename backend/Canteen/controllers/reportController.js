@@ -2,18 +2,10 @@
 
 const Complaint = require('../../Admin/models/Complaint');
 const multer    = require('multer');
-const path      = require('path');
-const fs        = require('fs');
- 
-// Multer setup
-const uploadDir = path.join(__dirname, '../../uploads/reports');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
- 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename:    (req, file, cb) => cb(null, `report-${Date.now()}${path.extname(file.originalname)}`),
-});
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
+
+// Multer setup — memory storage, saves as Base64 to MongoDB
+const storage = multer.memoryStorage();
+const upload  = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
  
 // ── POST /api/canteen/report ──────────────────────────────────────────────────
 const submitReport = async (req, res) => {
@@ -41,7 +33,7 @@ const submitReport = async (req, res) => {
        canteenName:      canteenName || '',     
       category,
       description:      description.trim(),
-      attachment:       req.file ? `/uploads/reports/${req.file.filename}` : '',
+      attachment: req.file ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}` : '',
       status:           'pending',
     });
  
