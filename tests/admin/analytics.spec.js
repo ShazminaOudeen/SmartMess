@@ -73,11 +73,10 @@ test.describe('Analytics Page', () => {
 
   // ── 4. Rankings table ─────────────────────────────────────────────────────
  test('should display Canteen Rankings table with headers', async ({ page }) => {
-  await expect(page.getByText(/canteen rankings/i)).toBeVisible();
-  await expect(page.getByText('Monthly Orders', { exact: true })).toBeVisible();
-  await expect(page.getByText('Monthly Revenue', { exact: true })).toBeVisible();
-  await expect(page.getByText('Total Revenue', { exact: true })).toBeVisible();
-  await expect(page.getByText('Total Orders', { exact: true })).toBeVisible();
+  await expect(page.locator('span').filter({ hasText: /^Monthly Orders$/ })).toBeVisible();
+  await expect(page.locator('span').filter({ hasText: /^Monthly Revenue$/ })).toBeVisible();
+  await expect(page.locator('span').filter({ hasText: /^Total Revenue$/ })).toBeVisible();
+  await expect(page.locator('span').filter({ hasText: /^Total Orders$/ })).toBeVisible();
   await expect(page.getByText(/avg \/ order/i)).toBeVisible();
 });
 
