@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { BarChart2, ChevronLeft, ChevronRight, Wallet, ShoppingBag, TrendingUp, ArrowLeft, Download } from "lucide-react";
+import {
+  BarChart2, ChevronLeft, ChevronRight,
+  Wallet, ShoppingBag, TrendingUp, ArrowLeft, Download
+} from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { trackingAPI } from "../../api/studentApi";
@@ -98,32 +101,50 @@ export default function ExpenseDashboard() {
     <div className="min-h-screen px-6 py-8">
       <div className="max-w-4xl mx-auto">
 
+        {/* Header */}
         <div className="page-header animate-fade-down flex items-start justify-between">
           <div>
             <h1 className="section-title">Expense <span className="text-gradient">Summary</span></h1>
             <p className="section-subtitle">Your monthly canteen spending overview</p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={generatePDF} disabled={loading || totalYear === 0}
-              className="btn-primary flex items-center gap-2 text-sm disabled:opacity-40 mr-2">
+            {/* Export PDF button */}
+            <button
+              onClick={generatePDF}
+              disabled={loading || totalYear === 0}
+              className="btn-primary flex items-center gap-2 text-sm disabled:opacity-40 mr-2"
+            >
               <Download size={15} /> Export PDF
             </button>
-            <button onClick={() => setYear((y) => y - 1)}
-              className="w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 hover:border-green-400 hover:text-green-600 transition-all">
+            {/* Previous year button */}
+            <button
+              onClick={() => setYear((y) => y - 1)}
+              className="w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 hover:border-green-400 hover:text-green-600 transition-all"
+              aria-label="Previous year"
+            >
               <ChevronLeft size={16} />
             </button>
-            <span className="font-bold text-gray-900 dark:text-white text-base px-2 min-w-[50px] text-center">{year}</span>
-            <button onClick={() => setYear((y) => y + 1)} disabled={year >= new Date().getFullYear()}
-              className="w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 hover:border-green-400 hover:text-green-600 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+            <span className="font-bold text-gray-900 dark:text-white text-base px-2 min-w-[50px] text-center">
+              {year}
+            </span>
+            {/* Next year button */}
+            <button
+              onClick={() => setYear((y) => y + 1)}
+              disabled={year >= new Date().getFullYear()}
+              className="w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 hover:border-green-400 hover:text-green-600 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="Next year"
+            >
               <ChevronRight size={16} />
             </button>
           </div>
         </div>
 
+        {/* Stats cards — Total Spent, Total Orders, Monthly Average */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          {loading ? [1,2,3].map((i) => <StatSkeleton key={i} />)
+          {loading
+            ? [1, 2, 3].map((i) => <StatSkeleton key={i} />)
             : STATS.map(({ label, value, Icon, color, bg }, i) => (
-              <div key={i} className={`card animate-fade-up animation-delay-${(i+1)*100} flex items-center gap-4`}>
+              <div key={i} className={`card animate-fade-up animation-delay-${(i + 1) * 100} flex items-center gap-4`}>
                 <div className={`w-12 h-12 rounded-2xl ${bg} flex items-center justify-center flex-shrink-0`}>
                   <Icon size={22} className={color} />
                 </div>
@@ -136,6 +157,7 @@ export default function ExpenseDashboard() {
           }
         </div>
 
+        {/* Monthly Breakdown chart */}
         <div className="card animate-fade-up animation-delay-300 mb-6">
           <div className="flex items-center gap-2 mb-6">
             <BarChart2 size={16} className="text-green-600" />
@@ -146,7 +168,7 @@ export default function ExpenseDashboard() {
             <div className="flex items-end gap-2 h-44">
               {[...Array(12)].map((_, i) => (
                 <div key={i} className="flex-1 flex flex-col gap-1 items-center">
-                  <div className="skeleton w-full rounded-t-lg" style={{ height: `${20 + Math.random()*60}%` }} />
+                  <div className="skeleton w-full rounded-t-lg" style={{ height: `${20 + Math.random() * 60}%` }} />
                   <div className="skeleton h-2 w-6 rounded" />
                 </div>
               ))}
@@ -163,12 +185,15 @@ export default function ExpenseDashboard() {
                           RS{month.totalSpent.toFixed(0)}
                         </span>
                       )}
-                      <div className="w-full rounded-t-lg transition-all duration-700 cursor-pointer hover:opacity-80"
+                      <div
+                        className="w-full rounded-t-lg transition-all duration-700 cursor-pointer hover:opacity-80"
                         style={{
                           height: `${Math.max(pct * 1.6, 4)}px`,
-                          minHeight: "4px", maxHeight: "160px",
+                          minHeight: "4px",
+                          maxHeight: "160px",
                           background: month.totalSpent > 0 ? "linear-gradient(to top, #16a34a, #4ade80)" : "#f3f4f6",
-                        }} />
+                        }}
+                      />
                     </div>
                     <span className="text-[10px] text-gray-400 mt-0.5">{MONTHS[i]}</span>
                   </div>
@@ -178,6 +203,7 @@ export default function ExpenseDashboard() {
           )}
         </div>
 
+        {/* Month-by-Month Details table */}
         <div className="card animate-fade-up animation-delay-400 mb-6">
           <div className="flex items-center gap-2 mb-4">
             <BarChart2 size={16} className="text-green-600" />
@@ -187,8 +213,13 @@ export default function ExpenseDashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-gray-700">
-                  {["Month","Orders","Spent","Avg / Order"].map((h) => (
-                    <th key={h} className={`py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider ${h === "Month" ? "text-left" : "text-right"}`}>{h}</th>
+                  {["Month", "Orders", "Spent", "Avg / Order"].map((h) => (
+                    <th
+                      key={h}
+                      className={`py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider ${h === "Month" ? "text-left" : "text-right"}`}
+                    >
+                      {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -212,10 +243,14 @@ export default function ExpenseDashboard() {
           </div>
         </div>
 
-        <button onClick={() => navigate("/student/orders")}
-          className="btn-secondary w-full flex items-center justify-center gap-2 animate-fade-up animation-delay-500">
+        {/* Back to Orders button */}
+        <button
+          onClick={() => navigate("/student/orders")}
+          className="btn-secondary w-full flex items-center justify-center gap-2 animate-fade-up animation-delay-500"
+        >
           <ArrowLeft size={14} /> Back to Orders
         </button>
+
       </div>
     </div>
   );

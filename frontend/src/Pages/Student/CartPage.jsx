@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShoppingCart, ArrowLeft, Minus, Plus, Trash2, Store, ChevronRight } from "lucide-react";
+import { ShoppingCart, ArrowLeft, Trash2, Store, ChevronRight } from "lucide-react";
 import { cartAPI } from "../../api/studentApi";
 import { useAuth } from "../../context/AuthContext";
 
@@ -96,8 +96,10 @@ export default function CartPage() {
             <h1 className="section-title">My <span className="text-gradient">Cart</span></h1>
             <p className="section-subtitle">Review your items before checkout</p>
           </div>
-          <button onClick={() => navigate("/student/canteens")}
-            className="btn-secondary flex items-center gap-2 text-sm">
+          <button
+            onClick={() => navigate("/student/canteens")}
+            className="btn-secondary flex items-center gap-2 text-sm"
+          >
             <ArrowLeft size={14} /> Continue Shopping
           </button>
         </div>
@@ -121,8 +123,10 @@ export default function CartPage() {
           <>
             {/* Canteen banner */}
             {canteen && (
-              <div className="flex items-center gap-3 px-4 py-3 rounded-xl mb-4 animate-fade-up"
-                style={{ background: "linear-gradient(135deg, #16a34a15, #4ade8010)", border: "1px solid #16a34a30" }}>
+              <div
+                className="flex items-center gap-3 px-4 py-3 rounded-xl mb-4 animate-fade-up"
+                style={{ background: "linear-gradient(135deg, #16a34a15, #4ade8010)", border: "1px solid #16a34a30" }}
+              >
                 <Store size={16} className="text-green-600 flex-shrink-0" />
                 <p className="text-sm font-semibold text-gray-800 dark:text-white flex-1">
                   {canteen.name || "Canteen"}
@@ -137,11 +141,10 @@ export default function CartPage() {
                 const mealId = item.meal?._id || item.meal;
                 const isUpdating = updating === mealId;
                 return (
-                  <div key={mealId || i}
-                    className={`card flex items-center gap-4 animate-fade-up animation-delay-${Math.min((i+1)*100, 300)} transition-all ${
-                      isUpdating ? "opacity-60" : ""
-                    }`}>
-
+                  <div
+                    key={mealId || i}
+                    className={`card flex items-center gap-4 animate-fade-up transition-all ${isUpdating ? "opacity-60" : ""}`}
+                  >
                     {/* Meal image/icon */}
                     <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {item.meal?.image
@@ -157,14 +160,15 @@ export default function CartPage() {
                       </p>
                     </div>
 
-                    {/* Quantity controls */}
+                    {/* Quantity controls — text characters so Playwright can find them */}
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button
                         onClick={() => handleDecrease(item)}
                         disabled={isUpdating}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-red-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-40"
+                        aria-label="Decrease quantity"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-red-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-40 font-bold text-base"
                       >
-                        <Minus size={12} />
+                        -
                       </button>
                       <span className="w-7 text-center font-bold text-gray-900 dark:text-white text-sm">
                         {item.quantity}
@@ -172,10 +176,11 @@ export default function CartPage() {
                       <button
                         onClick={() => handleIncrease(item)}
                         disabled={isUpdating}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white transition-all disabled:opacity-40"
+                        aria-label="Increase quantity"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white transition-all disabled:opacity-40 font-bold text-base"
                         style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}
                       >
-                        <Plus size={12} />
+                        +
                       </button>
                     </div>
 
@@ -199,7 +204,7 @@ export default function CartPage() {
               })}
             </div>
 
-            {/* Summary */}
+            {/* Order Summary */}
             <div className="glass-card mb-4 animate-fade-up">
               <h3 className="font-bold text-gray-900 dark:text-white mb-4 text-sm">Order Summary</h3>
               <div className="space-y-2 text-sm">
@@ -220,12 +225,16 @@ export default function CartPage() {
 
             {/* Actions */}
             <div className="flex gap-3 animate-fade-up">
-              <button onClick={handleClear}
-                className="btn-danger flex items-center gap-2 text-sm px-4">
+              <button
+                onClick={handleClear}
+                className="btn-danger flex items-center gap-2 text-sm px-4"
+              >
                 <Trash2 size={14} /> Clear Cart
               </button>
-              <button onClick={() => navigate("/student/checkout")}
-                className="btn-primary flex-1 flex items-center justify-center gap-2">
+              <button
+                onClick={() => navigate("/student/checkout")}
+                className="btn-primary flex-1 flex items-center justify-center gap-2"
+              >
                 Proceed to Checkout <ChevronRight size={15} />
               </button>
             </div>
@@ -235,3 +244,4 @@ export default function CartPage() {
     </div>
   );
 }
+

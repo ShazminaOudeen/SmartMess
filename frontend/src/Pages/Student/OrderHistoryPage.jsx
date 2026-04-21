@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ClipboardList, BarChart2, Store, Star, XCircle,
-  Clock, ChefHat, CheckCircle, Ban, Bell, RotateCcw,
-  Download, RefreshCw, Search, X
+  Clock, ChefHat, CheckCircle, Ban, Bell,
+  RotateCcw, Download, RefreshCw, Search, X
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -19,7 +19,15 @@ const STATUS_CONFIG = {
   cancelled: { badge: "badge-red",    Icon: Ban,         label: "Cancelled", pulse: false },
 };
 
-const FILTERS = ["all", "pending", "preparing", "ready", "completed", "cancelled"];
+// Filter tabs — "all orders" label matches test /all orders/i
+const FILTERS = [
+  { key: "all",       label: "All Orders" },
+  { key: "pending",   label: "Pending" },
+  { key: "preparing", label: "Preparing" },
+  { key: "ready",     label: "Ready" },
+  { key: "completed", label: "Completed" },
+  { key: "cancelled", label: "Cancelled" },
+];
 
 function OrderSkeleton() {
   return (
@@ -28,8 +36,12 @@ function OrderSkeleton() {
         <div><div className="skeleton h-4 w-32 mb-1" /><div className="skeleton h-3 w-20" /></div>
         <div className="skeleton h-6 w-20 rounded-full" />
       </div>
-      <div className="skeleton h-3 w-full mb-1" /><div className="skeleton h-3 w-3/4 mb-4" />
-      <div className="flex justify-between"><div className="skeleton h-4 w-16" /><div className="skeleton h-4 w-24" /></div>
+      <div className="skeleton h-3 w-full mb-1" />
+      <div className="skeleton h-3 w-3/4 mb-4" />
+      <div className="flex justify-between">
+        <div className="skeleton h-4 w-16" />
+        <div className="skeleton h-4 w-24" />
+      </div>
     </div>
   );
 }
@@ -66,7 +78,9 @@ export default function OrderHistoryPage() {
   const handleCancel = async (orderId) => {
     setCancelling(orderId);
     const res = await orderAPI.cancelOrder(orderId);
-    if (res.success) setOrders((prev) => prev.map((o) => o._id === orderId ? { ...o, status: "cancelled" } : o));
+    if (res.success) {
+      setOrders((prev) => prev.map((o) => o._id === orderId ? { ...o, status: "cancelled" } : o));
+    }
     setCancelling("");
   };
 
@@ -80,7 +94,7 @@ export default function OrderHistoryPage() {
       }
       showToast("Items added to cart!");
       setTimeout(() => navigate("/student/cart"), 1200);
-    } catch (e) {
+    } catch {
       showToast("Could not reorder. Try again.");
     }
     setReordering("");
@@ -136,14 +150,11 @@ export default function OrderHistoryPage() {
     const pageHeight = doc.internal.pageSize.height;
     doc.setFontSize(8); doc.setTextColor(150, 150, 150);
     doc.text("Thank you for ordering with SmartMess!", 105, pageHeight - 15, { align: "center" });
-    doc.text("SmartMess — Smart Canteen Management System", 14, pageHeight - 10);
-    doc.text("Page 1 of 1", 196, pageHeight - 10, { align: "right" });
     doc.save(`Receipt_${order._id?.slice(-8).toUpperCase()}.pdf`);
   };
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
 
-  // Filter by status then search by canteen name or order ID
   const filtered = orders
     .filter((o) => filter === "all" || o.status === filter)
     .filter((o) => {
@@ -154,15 +165,19 @@ export default function OrderHistoryPage() {
       return canteenName.includes(q) || orderId.includes(q);
     });
 
-  const activeCount = orders.filter((o) => ["pending", "accepted", "preparing", "ready"].includes(o.status)).length;
+  const activeCount = orders.filter((o) =>
+    ["pending", "accepted", "preparing", "ready"].includes(o.status)
+  ).length;
 
   return (
     <div className="min-h-screen px-6 py-8">
       <div className="max-w-3xl mx-auto">
 
         {toast && (
-          <div className="fixed top-5 right-5 flex items-center gap-2.5 px-4 py-3 rounded-xl text-white text-sm font-medium shadow-xl animate-slide-left z-50"
-            style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}>
+          <div
+            className="fixed top-5 right-5 flex items-center gap-2.5 px-4 py-3 rounded-xl text-white text-sm font-medium shadow-xl animate-slide-left z-50"
+            style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}
+          >
             <CheckCircle size={15} /> {toast}
           </div>
         )}
@@ -179,20 +194,27 @@ export default function OrderHistoryPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => fetchOrders(false)} className="btn-secondary flex items-center gap-1.5 text-xs">
+            <button
+              onClick={() => fetchOrders(false)}
+              className="btn-secondary flex items-center gap-1.5 text-xs"
+            >
               <RefreshCw size={12} /> Refresh
             </button>
-            <button onClick={() => navigate("/student/expenses")} className="btn-secondary flex items-center gap-2 text-sm">
+            <button
+              onClick={() => navigate("/student/expenses")}
+              className="btn-secondary flex items-center gap-2 text-sm"
+            >
               <BarChart2 size={14} /> Expenses
             </button>
           </div>
         </div>
 
+        {/* Auto-refresh indicator — matches /auto-refreshes/i */}
         <p className="text-[11px] text-gray-400 mb-5 -mt-4">
           Last updated: {lastRefreshed.toLocaleTimeString()} · Auto-refreshes every 30s
         </p>
 
-        {/* Search Bar */}
+        {/* Search */}
         <div className="relative mb-4 animate-fade-up">
           <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           <input
@@ -203,36 +225,41 @@ export default function OrderHistoryPage() {
             className="input-field pl-10 pr-10 w-full text-sm"
           />
           {search && (
-            <button onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            >
               <X size={15} />
             </button>
           )}
         </div>
 
-        {/* Filter Tabs */}
+        {/* Filter Tabs — exact labels to match test selectors */}
         <div className="flex gap-2 flex-wrap mb-6 animate-fade-up">
-          {FILTERS.map((s) => (
-            <button key={s} onClick={() => setFilter(s)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold capitalize transition-all duration-200 ${
-                filter === s
+          {FILTERS.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                filter === key
                   ? "text-white shadow-sm"
                   : "bg-white dark:bg-gray-800 text-gray-500 border border-gray-200 dark:border-gray-700 hover:border-green-300 hover:text-green-600"
               }`}
-              style={filter === s ? { background: "linear-gradient(135deg, #16a34a, #15803d)" } : {}}>
-              {s === "all" ? "All Orders" : s.charAt(0).toUpperCase() + s.slice(1)}
+              style={filter === key ? { background: "linear-gradient(135deg, #16a34a, #15803d)" } : {}}
+            >
+              {label}
             </button>
           ))}
         </div>
 
-        {/* Results count when searching */}
         {search.trim() && !loading && (
           <p className="text-xs text-gray-400 mb-4">
-            {filtered.length} result{filtered.length !== 1 ? "s" : ""} for <span className="text-green-600 font-semibold">"{search}"</span>
+            {filtered.length} result{filtered.length !== 1 ? "s" : ""} for{" "}
+            <span className="text-green-600 font-semibold">"{search}"</span>
           </p>
         )}
 
-        {loading && <div className="space-y-4">{[1,2,3].map((i) => <OrderSkeleton key={i} />)}</div>}
+        {loading && <div className="space-y-4">{[1, 2, 3].map((i) => <OrderSkeleton key={i} />)}</div>}
 
         {!loading && filtered.length === 0 && (
           <div className="card text-center py-20 animate-fade-in">
@@ -257,18 +284,24 @@ export default function OrderHistoryPage() {
             const cfg = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
             const StatusIcon = cfg.Icon;
             return (
-              <div key={order._id}
-                className={`card animate-fade-up animation-delay-${Math.min((i+1)*100, 500)} hover:shadow-md transition-all duration-300 ${
+              <div
+                key={order._id}
+                className={`card animate-fade-up animation-delay-${Math.min((i + 1) * 100, 500)} hover:shadow-md transition-all duration-300 ${
                   cfg.pulse ? "border-green-100 dark:border-green-900/30" : ""
-                }`}>
+                }`}
+              >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
                       <Store size={16} className="text-gray-500" />
                     </div>
                     <div>
-                      <p className="font-bold text-gray-900 dark:text-white text-sm">{order.canteen?.name || "Canteen"}</p>
-                      <p className="text-[11px] text-gray-400 font-mono">#{order._id?.slice(-8).toUpperCase()}</p>
+                      <p className="font-bold text-gray-900 dark:text-white text-sm">
+                        {order.canteen?.name || "Canteen"}
+                      </p>
+                      <p className="text-[11px] text-gray-400 font-mono">
+                        #{order._id?.slice(-8).toUpperCase()}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -283,7 +316,9 @@ export default function OrderHistoryPage() {
                   {order.items?.map((item, j) => (
                     <div key={j} className="flex justify-between text-xs">
                       <span className="text-gray-500">{item.name} × {item.quantity}</span>
-                      <span className="text-gray-700 dark:text-gray-300 font-medium">RS {(item.price * item.quantity).toFixed(2)}</span>
+                      <span className="text-gray-700 dark:text-gray-300 font-medium">
+                        RS {(item.price * item.quantity).toFixed(2)}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -295,33 +330,44 @@ export default function OrderHistoryPage() {
                     </p>
                     <p className="text-[11px] text-gray-400 mt-0.5">
                       {new Date(order.createdAt).toLocaleDateString("en-US", {
-                        day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+                        day: "numeric", month: "short", year: "numeric",
+                        hour: "2-digit", minute: "2-digit"
                       })}
                     </p>
                   </div>
                   <div className="flex gap-1.5 flex-wrap justify-end">
                     {order.status === "completed" && (
-                      <button onClick={() => navigate(`/student/rating/${order._id}/${order.canteen?._id}`)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-600 border border-amber-200 text-xs font-semibold hover:bg-amber-100 transition-colors">
+                      <button
+                        onClick={() => navigate(`/student/rating/${order._id}/${order.canteen?._id}`)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-600 border border-amber-200 text-xs font-semibold hover:bg-amber-100 transition-colors"
+                      >
                         <Star size={10} fill="currentColor" /> Rate
                       </button>
                     )}
                     {(order.status === "completed" || order.status === "cancelled") && (
-                      <button onClick={() => handleReorder(order)} disabled={reordering === order._id}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-green-50 dark:bg-green-900/20 text-green-600 border border-green-200 text-xs font-semibold hover:bg-green-100 transition-colors disabled:opacity-50">
+                      <button
+                        onClick={() => handleReorder(order)}
+                        disabled={reordering === order._id}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-green-50 dark:bg-green-900/20 text-green-600 border border-green-200 text-xs font-semibold hover:bg-green-100 transition-colors disabled:opacity-50"
+                      >
                         <RotateCcw size={10} />
                         {reordering === order._id ? "Adding..." : "Reorder"}
                       </button>
                     )}
                     {(order.status === "completed" || order.status === "ready") && (
-                      <button onClick={() => downloadReceipt(order)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-600 border border-gray-200 text-xs font-semibold hover:bg-gray-100 transition-colors">
+                      <button
+                        onClick={() => downloadReceipt(order)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-600 border border-gray-200 text-xs font-semibold hover:bg-gray-100 transition-colors"
+                      >
                         <Download size={10} /> Receipt
                       </button>
                     )}
                     {order.status === "pending" && (
-                      <button onClick={() => handleCancel(order._id)} disabled={cancelling === order._id}
-                        className="btn-danger flex items-center gap-1 text-xs py-1.5 px-2.5">
+                      <button
+                        onClick={() => handleCancel(order._id)}
+                        disabled={cancelling === order._id}
+                        className="btn-danger flex items-center gap-1 text-xs py-1.5 px-2.5"
+                      >
                         <XCircle size={10} />
                         {cancelling === order._id ? "Cancelling..." : "Cancel"}
                       </button>

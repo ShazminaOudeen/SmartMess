@@ -1,83 +1,156 @@
-//frontend/src/api/studentApi.js
+// frontend/src/api/studentApi.js
+
 const BASE_URL = '/api/student';
 
-export const canteenAPI = {
-  getAll: () => fetch(`${BASE_URL}/canteens`).then(r => r.json()),
-  getById: (id) => fetch(`${BASE_URL}/canteens/${id}`).then(r => r.json()),
-  getMeals: (canteenId, filters = '') =>
-    fetch(`${BASE_URL}/canteens/${canteenId}/meals?${filters}`).then(r => r.json()),
+// ─── Simple in-memory cache ───────────────────────────────────────────────────
+// Caches GET responses for a short TTL so navigating back to a page doesn't
+// re-hit the network every single time.
+const cache = new Map();
+const CACHE_TTL = 30_000; // 30 seconds
 
-  // 🔍 Global search across all canteens
+function cachedFetch(url) {
+  const now = Date.now();
+  const cached = cache.get(url);
+  if (cached && now - cached.ts < CACHE_TTL) {
+    return Promise.resolve(cached.data);
+  }
+  return fetch(url)
+    .then((r) => r.json())
+    .then((data) => {
+      cache.set(url, { data, ts: now });
+      return data;
+    });
+}
+
+// Call this whenever you write data so stale cache entries are removed
+function invalidateCache(pattern) {
+  for (const key of cache.keys()) {
+    if (key.includes(pattern)) cache.delete(key);
+  }
+}
+
+// ─── Canteen API ──────────────────────────────────────────────────────────────
+export const canteenAPI = {
+  getAll: () => cachedFetch(`${BASE_URL}/canteens`),
+
+  getById: (id) => cachedFetch(`${BASE_URL}/canteens/${id}`),
+
+  getMeals: (canteenId, filters = '') =>
+    cachedFetch(`${BASE_URL}/canteens/${canteenId}/meals?${filters}`),
+
   globalSearch: (query = '', category = '', maxPrice = '') => {
-    let params = [];
+    const params = [];
     if (query) params.push(`q=${encodeURIComponent(query)}`);
     if (category && category !== 'All') params.push(`category=${category}`);
     if (maxPrice) params.push(`maxPrice=${maxPrice}`);
-    return fetch(`${BASE_URL}/canteens/search?${params.join('&')}`).then(r => r.json());
+    // Search results are not cached — they depend on user input
+    return fetch(`${BASE_URL}/canteens/search?${params.join('&')}`).then((r) => r.json());
   },
 
-  // 📊 Most ordered meals for student
   getMostOrdered: (studentId) =>
-    fetch(`${BASE_URL}/canteens/most-ordered/${studentId}`).then(r => r.json()),
+    cachedFetch(`${BASE_URL}/canteens/most-ordered/${studentId}`),
 };
 
+// ─── Cart API ─────────────────────────────────────────────────────────────────
 export const cartAPI = {
-  getCart: (studentId) => fetch(`${BASE_URL}/cart/${studentId}`).then(r => r.json()),
+  getCart: (studentId) => cachedFetch(`${BASE_URL}/cart/${studentId}`),
+
   addToCart: (data) =>
     fetch(`${BASE_URL}/cart/add`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-    }).then(r => r.json()),
+    })
+      .then((r) => r.json())
+      .then((res) => {
+        invalidateCache(`/cart/${data.studentId}`);
+        return res;
+      }),
+
   updateItem: (data) =>
     fetch(`${BASE_URL}/cart/update`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-    }).then(r => r.json()),
+    })
+      .then((r) => r.json())
+      .then((res) => {
+        invalidateCache(`/cart/${data.studentId}`);
+        return res;
+      }),
+
   removeItem: (data) =>
     fetch(`${BASE_URL}/cart/remove`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-    }).then(r => r.json()),
+    })
+      .then((r) => r.json())
+      .then((res) => {
+        invalidateCache(`/cart/${data.studentId}`);
+        return res;
+      }),
+
   clearCart: (studentId) =>
-    fetch(`${BASE_URL}/cart/clear/${studentId}`, { method: 'DELETE' }).then(r => r.json()),
+    fetch(`${BASE_URL}/cart/clear/${studentId}`, { method: 'DELETE' })
+      .then((r) => r.json())
+      .then((res) => {
+        invalidateCache(`/cart/${studentId}`);
+        return res;
+      }),
 };
 
+// ─── Order API ────────────────────────────────────────────────────────────────
 export const orderAPI = {
   placeOrder: (data) =>
     fetch(`${BASE_URL}/orders/place`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-    }).then(r => r.json()),
-  getById: (orderId) => fetch(`${BASE_URL}/orders/${orderId}`).then(r => r.json()),
+    })
+      .then((r) => r.json())
+      .then((res) => {
+        // Invalidate cart and order history caches after placing an order
+        if (data.studentId) {
+          invalidateCache(`/cart/${data.studentId}`);
+          invalidateCache(`/tracking/history/${data.studentId}`);
+        }
+        return res;
+      }),
+
+  getById: (orderId) => fetch(`${BASE_URL}/orders/${orderId}`).then((r) => r.json()),
+
   cancelOrder: (orderId) =>
-    fetch(`${BASE_URL}/orders/${orderId}/cancel`, { method: 'PATCH' }).then(r => r.json()),
+    fetch(`${BASE_URL}/orders/${orderId}/cancel`, { method: 'PATCH' }).then((r) => r.json()),
 };
 
+// ─── Payment API ──────────────────────────────────────────────────────────────
 export const paymentAPI = {
-  getByOrder: (orderId) => fetch(`${BASE_URL}/payment/${orderId}`).then(r => r.json()),
+  getByOrder: (orderId) => fetch(`${BASE_URL}/payment/${orderId}`).then((r) => r.json()),
+
   processPayment: (data) =>
     fetch(`${BASE_URL}/payment/process`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-    }).then(r => r.json()),
+    }).then((r) => r.json()),
 };
 
+// ─── Tracking API ─────────────────────────────────────────────────────────────
 export const trackingAPI = {
-  getHistory: (studentId) => fetch(`${BASE_URL}/tracking/history/${studentId}`).then(r => r.json()),
-  trackStatus: (orderId) => fetch(`${BASE_URL}/tracking/status/${orderId}`).then(r => r.json()),
+  getHistory: (studentId) => cachedFetch(`${BASE_URL}/tracking/history/${studentId}`),
+
+  trackStatus: (orderId) => fetch(`${BASE_URL}/tracking/status/${orderId}`).then((r) => r.json()),
+
   getExpenses: (studentId, year) =>
-    fetch(`${BASE_URL}/tracking/expenses/${studentId}?year=${year}`).then(r => r.json()),
+    cachedFetch(`${BASE_URL}/tracking/expenses/${studentId}?year=${year}`),
+
   submitRating: (data) =>
     fetch(`${BASE_URL}/tracking/rating`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-    }).then(r => r.json()),
-  getMyRatings: (studentId) =>
-    fetch(`${BASE_URL}/tracking/ratings/${studentId}`).then(r => r.json()),
+    }).then((r) => r.json()),
+
+  getMyRatings: (studentId) => cachedFetch(`${BASE_URL}/tracking/ratings/${studentId}`),
 };
