@@ -18,5 +18,9 @@
   "devDependencies": {
     "@playwright/test": "^1.59.1",
     "@types/node": "^25.3.3"
-  }
+  },
+  "directories": {
+    "test": "tests"
+  },
+  "type": "commonjs"
 }
