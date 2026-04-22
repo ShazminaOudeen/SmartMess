@@ -15,9 +15,7 @@ const CATEGORIES = ['Rice', 'Snacks', 'Desserts', 'Drinks', 'Breakfast', 'Other'
 const SIZES      = ['Small', 'Medium', 'Large'];
 const API        = '/api/canteen/meals';
 
-// ── Build a fresh empty form ──────────────────────────────────────────────────
-// FIX: No size is forced enabled by default. User must choose.
-// Default size is 'Medium' initially, but user can change everything freely.
+
 const makeEmptyForm = () => ({
   name:        '',
   description: '',
@@ -32,8 +30,7 @@ const makeEmptyForm = () => ({
   },
 });
 
-// ── Build edit form from a saved meal ─────────────────────────────────────────
-// FIX: respect ALL values exactly as saved — no forced overrides
+
 const makeEditForm = (meal) => ({
   name:        meal.name        || '',
   description: meal.description || '',
@@ -228,7 +225,6 @@ export default function MealsPage() {
     if (name === 'basePrice') {
       if (value !== '' && !/^\d*\.?\d*$/.test(value)) return;
 
-      // FIX: auto-fill the CURRENT default size's price, not always Medium
       setForm(f => ({
         ...f,
         basePrice: value,
@@ -245,30 +241,23 @@ export default function MealsPage() {
     if (formErrors[name]) setFormErrors(p => ({ ...p, [name]: undefined }));
   };
 
-  // ── default size button click ──────────────────────────────────────────────
-  // FIX: selecting a size as default also auto-enables it.
-  // When default changes, the base price syncs to the new default size's price field.
   const handleDefaultSize = (size) => {
     setForm(f => ({
       ...f,
       defaultSize: size,
       sizes: {
         ...f.sizes,
-        // auto-enable the chosen default, and sync base price to it
         [size]: { ...f.sizes[size], enabled: true, price: f.basePrice || f.sizes[size].price },
       },
     }));
   };
 
-  // ── size toggle ───────────────────────────────────────────────────────────
-  // FIX: ALL sizes including Medium can be toggled.
-  // If disabling the current default, we fall back to the first remaining enabled size.
+  
   const handleSizeToggle = (size) => {
     setForm(f => {
       const nowEnabled = !f.sizes[size].enabled;
       const newSizes   = { ...f.sizes, [size]: { ...f.sizes[size], enabled: nowEnabled } };
 
-      // If we disabled the current default, find another enabled size to be default
       let newDefault = f.defaultSize;
       if (!nowEnabled && f.defaultSize === size) {
         const fallback = SIZES.find(s => s !== size && newSizes[s].enabled);
@@ -310,12 +299,12 @@ export default function MealsPage() {
     if (form.description.trim() && !/^[a-zA-Z\s]+$/.test(form.description.trim()))
       errors.description = 'Description must contain letters only (no numbers or symbols)';
 
-    // FIX: validate at least one size is enabled
+    // validate at least one size is enabled
     const anyEnabled = SIZES.some(s => form.sizes[s].enabled);
     if (!anyEnabled)
       errors.sizes = 'At least one size must be enabled';
 
-    // FIX: validate defaultSize is set and is an enabled size
+    //  validate defaultSize is set and is an enabled size
     if (!form.defaultSize || !form.sizes[form.defaultSize]?.enabled)
       errors.defaultSize = 'Please select a default size from the enabled sizes';
 
