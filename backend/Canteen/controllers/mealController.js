@@ -20,17 +20,14 @@ const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const parseSizes = (rawSizes) => {
-  // rawSizes arrives as a JSON string from FormData fd.append('sizes', JSON.stringify(...))
-  // After JSON.parse, s.enabled is a real boolean — but guard against string "true"/"false"
-  // in case anything ever sends it as a plain form field instead.
+  
   let parsed = {};
   try { parsed = typeof rawSizes === 'string' ? JSON.parse(rawSizes) : rawSizes; } catch { parsed = {}; }
 
   const result = {};
   ['Small', 'Medium', 'Large'].forEach((size) => {
     const s = parsed[size] || {};
-    // Safely coerce: real boolean true → true, real boolean false → false,
-    // string "true" → true, string "false" → false, undefined/null → false
+
     const enabled = s.enabled === true || s.enabled === 'true';
     const price   = parseFloat(s.price);
     result[size]  = { enabled, price: isNaN(price) ? 0 : price };
@@ -57,7 +54,7 @@ const validateMealBody = (body) => {
   // validate that at least one size is enabled
   let parsedSizes = {};
   try { parsedSizes = typeof sizes === 'string' ? JSON.parse(sizes) : (sizes || {}); } catch { parsedSizes = {}; }
-  // Use same safe coercion: true or "true" → enabled
+  
   const isSizeEnabled = (s) => s?.enabled === true || s?.enabled === 'true';
   const anyEnabled = ['Small', 'Medium', 'Large'].some(s => isSizeEnabled(parsedSizes[s]));
   if (!anyEnabled)
