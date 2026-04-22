@@ -2,6 +2,7 @@
 // SmartMess — Canteen Module Playwright Test Suite
 // Run with: npx playwright test tests/canteen/canteen.spec.js
 // npx playwright test tests/canteen/canteen.spec.js --reporter=list
+//to show browser opening:  npx playwright test tests/canteen/canteen.spec.js --headed --reporter=list
 import { test, expect } from '@playwright/test';
 
 const BASE_URL         = 'http://localhost:5173';
