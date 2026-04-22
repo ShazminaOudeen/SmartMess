@@ -6,9 +6,8 @@ const fs       = require('fs');
 
 const getCollection = (name) => mongoose.connection.db.collection(name);
 
-// ── Multer setup for canteen images ──────────────────────────────────────────
-// ── Multer setup — memory storage (no disk, we save Base64 to MongoDB) ────────
-const storage = multer.memoryStorage(); // ← change this
+
+const storage = multer.memoryStorage(); 
 
 const fileFilter = (req, file, cb) => {
   const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
